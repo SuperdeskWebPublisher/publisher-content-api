@@ -1,0 +1,2 @@
+[global.databases]
+db = { url = "postgres://rafal@127.0.0.1/publisher" }
