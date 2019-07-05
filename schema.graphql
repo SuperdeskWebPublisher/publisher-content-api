@@ -1,0 +1,46 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  articles: [Article!]! @juniper(ownership: "owned")
+}
+
+type Mutation {
+  noop: Boolean!
+}
+
+type Article {
+  id: Int!
+  slug: String!
+  title: String!
+  body: String!
+  lead: String!
+  route: Route!
+  media: [ArticleMedia!]!
+}
+
+type Route {
+  id: Int!
+  name: String!
+}
+
+type ArticleMedia {
+    id: Int!
+    article: Article!
+    key: String!
+    body: String!
+    description: String!
+    located: String!
+    byLine: String!
+    mimetype: String!
+    usageTerms: String!
+    image: Image!
+}
+
+type Image {
+  id: Int!
+  assetId: String!
+  fileExtension: String!
+}

@@ -1,52 +1,41 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-#[macro_use] extern crate rocket;
-// #[macro_use] extern crate juniper;
-// #[macro_use] extern crate juniper_rocket;
-#[macro_use] extern crate diesel;
-
-// #[macro_use] 
-// extern crate diesel;
-// extern crate dotenv;
+#[macro_use]
+extern crate rocket;
+#[macro_use]
+extern crate juniper;
+#[macro_use]
+extern crate juniper_rocket;
+#[macro_use]
+extern crate diesel;
+#[macro_use]
+extern crate rocket_contrib;
 
 use rocket::routes;
-use graphql_api::*;
 use diesel::prelude::*;
-use self::models::*;
+use db::DbConn;
+use crate::graphql::Context;
 
-// pub mod graphql;
+pub mod graphql;
+pub mod db;
 pub mod routes;
-//pub mod services;
+pub mod models;
+pub mod schema;
 
-
- use graphql_api::*;
-
-//  use self::routes::*;
-// use diesel::prelude::*;
-// use rocket::response::content;
-// use rocket::State;
-
-
-// #[get("/")]
-// fn index(conn: DbConn) -> &'static str {
-//     let articles = services::articles::all(conn);
-
-//     println!("Displaying {} posts", articles.len());
-//     for post in articles {
-//         println!("{}", post.title);
-//         println!("-----------\n");
-//         println!("{}", post.body);
-//     }
-
-//     "OK"
-// }
+use routes::Schema;
+use graphql::Query;
+use juniper::{EmptyMutation, RootNode};
 
 fn main() {
     rocket::ignite()
         .attach(DbConn::fairing())
+        .manage(Schema::new(
+            Query,
+            EmptyMutation::<Context>::new(),
+        ))
         .mount("/", routes![
-            //index,
-            routes::graphql::graphiql
+            routes::graphiql,
+            routes::post_graphql_handler
         ])
         .launch();
 }
