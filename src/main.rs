@@ -3,39 +3,25 @@
 #[macro_use]
 extern crate rocket;
 #[macro_use]
-extern crate juniper;
-#[macro_use]
-extern crate juniper_rocket;
-#[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate rocket_contrib;
 
-use rocket::routes;
-use diesel::prelude::*;
-use db::DbConn;
-use crate::graphql::Context;
+mod graphql;
+mod db;
+mod routes;
+mod models;
+mod schema;
 
-pub mod graphql;
-pub mod db;
-pub mod routes;
-pub mod models;
-pub mod schema;
-
-use routes::Schema;
-use graphql::Query;
-use juniper::{EmptyMutation, RootNode};
+use crate::graphql::*;
 
 fn main() {
+    dotenv::dotenv().ok();
     rocket::ignite()
-        .attach(DbConn::fairing())
-        .manage(Schema::new(
-            Query,
-            EmptyMutation::<Context>::new(),
-        ))
+        .manage(db::db_pool())
+        .manage(Schema::new(Query, Mutation))
         .mount("/", routes![
             routes::graphiql,
-            routes::post_graphql_handler
+            routes::post_graphql_handler,
+            routes::get_graphql_handler
         ])
         .launch();
 }

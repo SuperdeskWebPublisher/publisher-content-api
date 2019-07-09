@@ -1,6 +1,5 @@
 use chrono::prelude::*;
 use crate::schema::{swp_article, swp_route, swp_article_media, swp_image};
-use crate::db::DbConn;
 use diesel::deserialize::Queryable;
 use diesel::prelude::*;
 use juniper_eager_loading::impl_load_from_for_diesel;

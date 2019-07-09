@@ -5,20 +5,36 @@ use super::models::Route as RouteModel;
 use super::models::ArticleMedia as ArticleMediaModel;
 use juniper_eager_loading::{prelude::*, *};
 use juniper_from_schema::graphql_schema_from_file;
-use crate::db::DbConn;
+use crate::db::{DbConn, DbConnPool};
 use diesel::prelude::*;
 use diesel::debug_query;
 use chrono::prelude::*;
-use diesel::sql_query;
-use crate::juniper::LookAheadMethods;
+use rocket::{
+    http::Status,
+    request::{self, FromRequest, Request},
+    Outcome, State,
+};
 
 graphql_schema_from_file!("schema.graphql");
 
 pub struct Context {
-    pub connection: DbConn
+    pub db_con: DbConn
 }
 
 impl JuniperContext for Context {}
+
+impl<'a, 'r> FromRequest<'a, 'r> for Context {
+    type Error = ();
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<Context, ()> {
+        let db_pool = request.guard::<State<DbConnPool>>()?;
+
+        match db_pool.get() {
+            Ok(db_con) => Outcome::Success(Context { db_con }),
+            Err(_) => Outcome::Failure((Status::ServiceUnavailable, ())),
+        }
+    }
+}
 
 pub struct Query;
 
@@ -109,7 +125,7 @@ impl ArticleFields for Article {
 
     fn field_route(
         &self,
-        executor: &Executor<'_, Context>,
+        _executor: &Executor<'_, Context>,
         _trail: &QueryTrail<'_, Route, Walked>,
     ) -> FieldResult<&Route> {
         Ok(self.route.try_unwrap()?)
@@ -117,8 +133,8 @@ impl ArticleFields for Article {
 
     fn field_media(
         &self,
-        executor: &Executor<'_, Context>,
-        trail: &QueryTrail<'_, ArticleMedia, Walked>,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, ArticleMedia, Walked>,
     ) -> FieldResult<&Vec<ArticleMedia>> {
         Ok(self.media.try_unwrap()?)
     }
@@ -169,7 +185,7 @@ impl ArticleMediaFields for ArticleMedia {
 
     fn field_article(
         &self,
-        executor: &Executor<'_, Context>,
+        _executor: &Executor<'_, Context>,
         _trail: &QueryTrail<'_, Article, Walked>,
     ) -> FieldResult<&Article> {
         Ok(self.article.try_unwrap()?)
@@ -177,7 +193,7 @@ impl ArticleMediaFields for ArticleMedia {
 
     fn field_image(
         &self,
-        executor: &Executor<'_, Context>,
+        _executor: &Executor<'_, Context>,
         _trail: &QueryTrail<'_, Image, Walked>,
     ) -> FieldResult<&Image> {
         Ok(self.image.try_unwrap()?)
@@ -187,15 +203,16 @@ impl ArticleMediaFields for ArticleMedia {
 impl QueryFields for Query {
     fn field_articles(
         &self,
-        executor: &Executor<'_, Context>,
-        trail: &QueryTrail<'_, Article, Walked>,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Article, Walked>,
     ) -> FieldResult<Vec<Article>> {
         use crate::schema::*;
+        let conn = &*_executor.context().db_con;
 
         let article_models = swp_article::dsl::swp_article
-            .load::<ArticleModel>(&*executor.context().connection)?;
+            .load::<ArticleModel>(conn)?;
         
-        let articles = map_models_to_graphql_nodes(&article_models, &trail, &executor.context().connection)?;
+        let articles = map_models_to_graphql_nodes(&article_models, &_trail, conn)?;
 
         Ok(articles)
     }
