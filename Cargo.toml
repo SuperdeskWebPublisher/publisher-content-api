@@ -14,3 +14,4 @@ diesel = { version = "1.4.2", features = ["postgres", "r2d2", "chrono"] }
 r2d2 = "0.8.5"
 juniper-from-schema = "^0.3"
 juniper-eager-loading = "^0.2"
+base64 = "0.10"

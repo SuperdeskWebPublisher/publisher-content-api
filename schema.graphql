@@ -4,7 +4,10 @@ schema {
 }
 
 type Query {
-  articles: [Article!]! @juniper(ownership: "owned")
+  articles(
+    after: Cursor
+    first: Int = 20
+  ): ArticleConnection @juniper(ownership: "owned")
 }
 
 type Mutation {
@@ -27,20 +30,40 @@ type Route {
 }
 
 type ArticleMedia {
-    id: Int!
-    article: Article!
-    key: String!
-    body: String!
-    description: String!
-    located: String!
-    byLine: String!
-    mimetype: String!
-    usageTerms: String!
-    image: Image!
+  id: Int!
+  article: Article!
+  key: String!
+  body: String!
+  description: String!
+  located: String!
+  byLine: String!
+  mimetype: String!
+  usageTerms: String!
+  image: Image!
 }
 
 type Image {
   id: Int!
   assetId: String!
   fileExtension: String!
+}
+
+scalar Cursor
+
+type PageInfo {
+  startCursor: Cursor
+  endCursor: Cursor
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+}
+
+type ArticleConnection {
+  edges: [ArticleEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ArticleEdge {
+  cursor: Cursor!
+  node: Article!
 }

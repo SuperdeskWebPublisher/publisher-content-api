@@ -1,3 +1,5 @@
+pub mod pagination;
+
 use chrono::prelude::*;
 use crate::schema::{swp_article, swp_route, swp_article_media, swp_image};
 use diesel::deserialize::Queryable;
