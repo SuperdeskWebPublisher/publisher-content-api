@@ -37,7 +37,7 @@ pub struct ArticleMedia {
     pub located: String,
     pub by_line: String,
     pub mimetype: String,
-    pub usage_terms: String
+    pub usage_terms: String,
 }
 
 #[derive(Identifiable, Queryable, Debug, PartialEq, Clone)]

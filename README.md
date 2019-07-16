@@ -5,6 +5,6 @@ Superdesk Publisher Content (read only) API powered by GraphQL. It allows to fet
 ### Features:
 
 - GraphQL support.
-- Integreted GraphiQL to explore GraphQL API.
+- Integrated GraphiQL to explore GraphQL API.
 - Fetch Superdesk Publisher articles.
 - Pagination is designed to work with the [Relay Cursor Connections](https://facebook.github.io/relay/graphql/connections.htm) spec.

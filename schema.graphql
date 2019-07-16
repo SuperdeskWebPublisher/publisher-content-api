@@ -4,6 +4,7 @@ schema {
 }
 
 type Query {
+  apiVersion: String! @juniper(ownership: "owned")
   articles(
     after: Cursor
     first: Int = 20
@@ -22,6 +23,10 @@ type Article {
   lead: String!
   route: Route!
   media: [ArticleMedia!]!
+  mediaConnection(
+    after: Cursor
+    first: Int = 20
+  ): MediaConnection @juniper(ownership: "owned")
 }
 
 type Route {
@@ -46,6 +51,7 @@ type Image {
   id: Int!
   assetId: String!
   fileExtension: String!
+  url: String! @juniper(ownership: "owned")
 }
 
 scalar Cursor
@@ -66,4 +72,15 @@ type ArticleConnection {
 type ArticleEdge {
   cursor: Cursor!
   node: Article!
+}
+
+type MediaConnection {
+  edges: [MediaEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type MediaEdge {
+  cursor: Cursor!
+  node: ArticleMedia!
 }
