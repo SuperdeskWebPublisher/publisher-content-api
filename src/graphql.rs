@@ -141,20 +141,6 @@ impl ArticleFields for Article {
     ) -> FieldResult<&Vec<ArticleMedia>> {
         Ok(self.media.try_unwrap()?)
     }
-
-    fn field_media_connection(
-        &self,
-        executor: &Executor<'_, Context>,
-        trail: &QueryTrail<'_, MediaConnection, Walked>,
-        after: Option<Cursor>,
-        first: i32,
-    ) -> FieldResult<Option<MediaConnection>> {
-        use crate::schema::swp_article_media;
-        let conn = &executor.context().db_con;
-        let media_connection = Some(media_connections(self.article.id, after, first, trail, conn)?);
-
-        Ok(media_connection)
-    }
 }
 
 impl RouteFields for Route {
@@ -220,9 +206,9 @@ impl ArticleMediaFields for ArticleMedia {
 impl QueryFields for Query {
     fn field_api_version(
         &self,
-        executor: &Executor<'_, Context>
-    ) -> juniper::FieldResult<String> {
-        Ok(format!("Hello, {}!", "1.0"))
+        _executor: &Executor<'_, Context>
+    ) -> FieldResult<String> {
+        Ok("1.0".to_string())
     }
 
     fn field_articles(
@@ -232,7 +218,6 @@ impl QueryFields for Query {
         after: Option<Cursor>,
         first: i32,
     ) -> FieldResult<Option<ArticleConnection>> {
-        use crate::schema::swp_article;
         let conn = &executor.context().db_con;
         let articles_connection = Some(articles_connections(after, first, trail, conn)?);
 
@@ -292,76 +277,6 @@ fn articles_connections(
     };
 
     Ok(ArticleConnection {
-        edges,
-        page_info,
-        total_count: total_count as i32,
-    })
-}
-
-fn media_connections(
-    article_id: i32,
-    cursor: Option<Cursor>,
-    page_size: i32,
-    trail: &QueryTrail<'_, MediaConnection, Walked>,
-    conn: &PgConnection,
-) -> QueryResult<MediaConnection> {
-    use crate::{models::pagination::*, schema::swp_article_media};
-
-    let page_size = i64::from(page_size);
-
-    let cursor_value = cursor
-        .unwrap_or_else(|| Cursor("MQ==".to_string()))
-        .0
-        .parse::<String>()
-        .expect("invalid cursor");
-
-    let decoded_cursor_value = String::from_utf8(decode(&cursor_value).unwrap()[..].to_vec()).unwrap();
-    let page_number = decoded_cursor_value.parse::<i64>().unwrap();
-
-    let val = (page_number + 1).to_string();
-    let next_page_cursor = Cursor(encode(&val));
-
-    let (media_models, total_count) = swp_article_media::table
-        .select(swp_article_media::all_columns)
-        .filter(swp_article_media::article_id.eq(article_id))
-        .paginate(page_number) // limit
-        .per_page(page_size) // offset
-        .load_and_count_pages::<ArticleMediaModel>(conn)?;
-
-    // let sql = debug_query::<diesel::pg::Pg, _>(&swp_article_media::table
-    //     .select(swp_article_media::all_columns)
-    //     .filter(swp_article_media::article_id.eq(article_id))
-    //     .paginate(page_number)
-    //     .per_page(page_size)).to_string();
-
-    //     println!("{:?}", sql);
-    //     println!("{:?}", page_number);
-        
-
-    let media = if let Some(media_trail) = trail.edges().node().walk() {
-        map_models_to_graphql_nodes(&media_models, &media_trail, conn)?
-    } else {
-        vec![]
-    };
-
-    let edges = media
-        .into_iter()
-        .map(|article_media| Edge {
-            node: article_media,
-            cursor: next_page_cursor.clone(),
-        })
-        .collect::<Vec<_>>();
-
-    // TODO https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo
-    // implement before and last params
-    let page_info = PageInfo {
-        start_cursor: edges.first().map(|edge| edge.cursor.clone()),
-        end_cursor: edges.last().map(|edge| edge.cursor.clone()),
-        has_next_page: if total_count as i32 > (page_size as i32 * page_number as i32) { true } else { false },
-        has_previous_page: if page_number as i32 > 1 && page_size as i32 == total_count as i32 { true } else { false }
-    };
-
-    Ok(MediaConnection {
         edges,
         page_info,
         total_count: total_count as i32,
@@ -482,49 +397,5 @@ impl ArticleEdgeFields for ArticleEdge {
 
     fn field_cursor(&self, _: &Executor<'_, Context>) -> FieldResult<&Cursor> {
         Ok(&self.cursor)
-    }
-}
-
-pub type MediaEdge = Edge<ArticleMedia>;
-
-impl MediaEdgeFields for MediaEdge {
-    fn field_node(
-        &self,
-        _: &Executor<'_, Context>,
-        _: &QueryTrail<'_, ArticleMedia, Walked>,
-    ) -> FieldResult<&ArticleMedia> {
-        Ok(&self.node)
-    }
-
-    fn field_cursor(&self, _: &Executor<'_, Context>) -> FieldResult<&Cursor> {
-        Ok(&self.cursor)
-    }
-}
-
-pub struct MediaConnection {
-    edges: Vec<MediaEdge>,
-    page_info: PageInfo,
-    total_count: i32,
-}
-
-impl MediaConnectionFields for MediaConnection {
-    fn field_edges(
-        &self,
-        _: &Executor<'_, Context>,
-        _: &QueryTrail<'_, MediaEdge, Walked>,
-    ) -> FieldResult<&Vec<MediaEdge>> {
-        Ok(&self.edges)
-    }
-
-    fn field_page_info(
-        &self,
-        _: &Executor<'_, Context>,
-        _: &QueryTrail<'_, PageInfo, Walked>,
-    ) -> FieldResult<&PageInfo> {
-        Ok(&self.page_info)
-    }
-
-    fn field_total_count(&self, _: &Executor<'_, Context>) -> FieldResult<&i32> {
-        Ok(&self.total_count)
     }
 }

@@ -23,10 +23,6 @@ type Article {
   lead: String!
   route: Route!
   media: [ArticleMedia!]!
-  mediaConnection(
-    after: Cursor
-    first: Int = 20
-  ): MediaConnection @juniper(ownership: "owned")
 }
 
 type Route {
@@ -72,15 +68,4 @@ type ArticleConnection {
 type ArticleEdge {
   cursor: Cursor!
   node: Article!
-}
-
-type MediaConnection {
-  edges: [MediaEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-type MediaEdge {
-  cursor: Cursor!
-  node: ArticleMedia!
 }
