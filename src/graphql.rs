@@ -159,6 +159,10 @@ impl ArticleFields for Article {
         Ok(&self.article.title)
     }
 
+    fn field_status(&self, _: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.article.status)
+    }
+
     fn field_slug(&self, _: &Executor<'_, Context>) -> FieldResult<&String> {
         Ok(&self.article.slug)
     }
@@ -169,6 +173,10 @@ impl ArticleFields for Article {
 
     fn field_body(&self, _: &Executor<'_, Context>) -> FieldResult<&String> {
         Ok(&self.article.body)
+    }
+
+    fn field_comments_count(&self, _: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.article.comments_count)
     }
 
     // fn field_published_at(&self, _: &Executor<'_, Context>) -> FieldResult<&Option<DateTime<Utc>>> {

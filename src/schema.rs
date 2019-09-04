@@ -2,10 +2,12 @@ table! {
     swp_article (id) {
         id -> Int4,
         slug -> Varchar,
+        status -> Varchar,
         title -> Varchar,
         body -> Text,
         lead -> Text,
         route_id -> Int4,
+        comments_count -> Int4,
     }
 }
 

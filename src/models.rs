@@ -11,10 +11,12 @@ use juniper_eager_loading::impl_load_from_for_diesel;
 pub struct Article {
     pub id: i32,
     pub slug: String,
+    pub status: String,
     pub title: String,
     pub body: String,
     pub lead: String,
     pub route_id: i32,
+    pub comments_count: i32,
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]

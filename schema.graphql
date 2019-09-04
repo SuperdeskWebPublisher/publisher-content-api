@@ -18,6 +18,7 @@ type Mutation {
 type Article {
   id: Int!
   slug: String!
+  status: String!
   title: String!
   body: String!
   lead: String!
@@ -25,6 +26,7 @@ type Article {
   media: [ArticleMedia!]!
   authors: [Author!]!
   keywords: [Keyword!]!
+  commentsCount: Int!
 }
 
 type Route {
