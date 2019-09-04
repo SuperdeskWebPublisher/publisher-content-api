@@ -39,12 +39,72 @@ table! {
     }
 }
 
+table! {
+    swp_image_rendition (id) {
+        id -> Int4,
+        media_id -> Int4,
+        image_id -> Int4,
+        width -> Int4,
+        height -> Int4,
+        name -> Varchar,
+    }
+}
+
+table! {
+    swp_author (id) {
+        id -> Int4,
+        name -> Varchar,
+        role -> Varchar,
+        job_title -> Varchar,
+        biography -> Nullable<Text>,
+        slug -> Nullable<Varchar>,
+        twitter -> Nullable<Varchar>,
+        facebook -> Nullable<Varchar>,
+        instagram -> Nullable<Varchar>,
+    }
+}
+
+table! {
+    swp_article_author (article_id) {
+        article_id -> Int4,
+        author_id -> Int4,
+    }
+}
+
+table! {
+    swp_keyword (id) {
+        id -> Int4,
+        name -> Varchar,
+        slug -> Varchar,
+    }
+}
+
+table! {
+    swp_article_keyword (article_id) {
+        article_id -> Int4,
+        keyword_id -> Int4,
+    }
+}
+
 joinable!(swp_article -> swp_route (route_id));
 joinable!(swp_article_media -> swp_image (image_id));
+joinable!(swp_image_rendition -> swp_image (image_id));
+joinable!(swp_image_rendition -> swp_article_media (media_id));
+
+joinable!(swp_article_author -> swp_author (author_id));
+joinable!(swp_article_author -> swp_article (article_id));
+
+joinable!(swp_article_keyword -> swp_article (article_id));
+joinable!(swp_article_keyword -> swp_keyword (keyword_id));
 
 allow_tables_to_appear_in_same_query!(
     swp_article,
     swp_route,
     swp_image,
-    swp_article_media
+    swp_article_media,
+    swp_image_rendition,
+    swp_article_author,
+    swp_author,
+    swp_article_keyword,
+    swp_keyword
 );

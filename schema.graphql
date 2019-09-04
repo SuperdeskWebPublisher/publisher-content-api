@@ -23,6 +23,8 @@ type Article {
   lead: String!
   route: Route!
   media: [ArticleMedia!]!
+  authors: [Author!]!
+  keywords: [Keyword!]!
 }
 
 type Route {
@@ -41,6 +43,7 @@ type ArticleMedia {
   mimetype: String!
   usageTerms: String!
   image: Image!
+  renditions: [ImageRendition!]!
 }
 
 type Image {
@@ -50,6 +53,15 @@ type Image {
   url: String! @juniper(ownership: "owned")
 }
 
+type ImageRendition {
+  id: Int!
+  media: ArticleMedia!
+  image: Image!
+  width: Int!
+  height: Int!
+  name: String!
+}
+
 scalar Cursor
 
 type PageInfo {
@@ -57,6 +69,24 @@ type PageInfo {
   endCursor: Cursor
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
+}
+
+type Author {
+  id: Int!
+  name: String!
+  role: String!
+  jobTitle: String!
+  biography: String
+  slug: String
+  twitter: String
+  facebook: String
+  instagram: String
+}
+
+type Keyword {
+  id: Int!
+  name: String!
+  slug: String!
 }
 
 type ArticleConnection {

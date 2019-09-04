@@ -1,8 +1,13 @@
 use juniper::{Executor, Context as JuniperContext, FieldResult, FieldError};
 use super::models::Image as ImageModel;
 use super::models::Article as ArticleModel;
+use super::models::Author as AuthorModel;
+use super::models::Keyword as KeywordModel;
+use super::models::ArticleAuthor as ArticleAuthorModel;
+use super::models::ArticleKeyword as ArticleKeywordModel;
 use super::models::Route as RouteModel;
 use super::models::ArticleMedia as ArticleMediaModel;
+use super::models::ImageRendition as ImageRenditionModel;
 use juniper_eager_loading::{prelude::*, *};
 use juniper_from_schema::graphql_schema_from_file;
 use crate::db::{DbConn, DbConnPool};
@@ -64,6 +69,10 @@ pub struct Article {
         foreign_key_field = "article_id",
     )]
     media: HasMany<ArticleMedia>,
+    #[has_many_through(join_model = "ArticleAuthorModel")]
+    authors: HasManyThrough<Author>,
+    #[has_many_through(join_model = "ArticleKeywordModel")]
+    keywords: HasManyThrough<Keyword>,
 }
 
 
@@ -84,11 +93,17 @@ pub struct Route {
     connection = "PgConnection"
 )]
 pub struct ArticleMedia {
+    media: ArticleMediaModel,
     article_media: ArticleMediaModel,
     #[has_one(default)]
     article: HasOne<Article>,
     #[has_one(default)]
     image: HasOne<Image>,
+    #[has_many(
+        root_model_field = "image_rendition",
+        foreign_key_field = "media_id",
+    )]
+    renditions: HasMany<ImageRendition>,
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -99,6 +114,40 @@ pub struct ArticleMedia {
 )]
 pub struct Image {
     image: ImageModel,
+}
+
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "ImageRenditionModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct ImageRendition {
+    #[has_one(default)]
+    media: HasOne<ArticleMedia>,
+    image_rendition: ImageRenditionModel,
+    #[has_one(default)]
+    image: HasOne<Image>,
+}
+
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "AuthorModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct Author {
+    author: AuthorModel
+}
+
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "KeywordModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct Keyword {
+    keyword: KeywordModel
 }
 
 impl ArticleFields for Article {
@@ -140,6 +189,81 @@ impl ArticleFields for Article {
         _trail: &QueryTrail<'_, ArticleMedia, Walked>,
     ) -> FieldResult<&Vec<ArticleMedia>> {
         Ok(self.media.try_unwrap()?)
+    }
+
+    fn field_authors(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Author, Walked>,
+    ) -> FieldResult<&Vec<Author>> {
+        Ok(self.authors.try_unwrap()?)
+    }
+
+    fn field_keywords(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Keyword, Walked>,
+    ) -> FieldResult<&Vec<Keyword>> {
+        Ok(self.keywords.try_unwrap()?)
+    }
+}
+
+impl AuthorFields for Author {
+    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.author.id)
+    }
+
+    fn field_name(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.author.name)
+    }
+
+    fn field_role(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.author.role)
+    }
+
+    fn field_job_title(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.author.job_title)
+    }
+
+    fn field_biography(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.author.biography)
+    }
+
+    fn field_slug(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.author.slug)
+    }
+
+    fn field_twitter(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.author.twitter)
+    }
+    
+    fn field_facebook(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.author.facebook)
+    }
+
+    fn field_instagram(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.author.instagram)
+    }
+
+    // fn field_avatar_url(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+    //     use crate::{graphql::generator::*};
+
+    //     //Ok(generate_asset_url(&self.media.image.asset_id, &self.media.image.file_extension))
+    //     Ok(&self.media.key)
+    // }
+}
+
+impl KeywordFields for Keyword {
+    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.keyword.id)
+    }
+
+    fn field_name(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.keyword.name)
+    }
+
+    fn field_slug(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.keyword.slug)
     }
 }
 
@@ -200,6 +324,15 @@ impl ArticleMediaFields for ArticleMedia {
         _trail: &QueryTrail<'_, Image, Walked>,
     ) -> FieldResult<&Image> {
         Ok(self.image.try_unwrap()?)
+    }
+
+    fn field_renditions(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, ImageRendition, Walked>,
+    ) -> FieldResult<&Vec<ImageRendition>> {
+        println!("{:?}", self.renditions);
+        Ok(self.renditions.try_unwrap()?)
     }
 }
 
@@ -300,6 +433,40 @@ impl ImageFields for Image {
         use crate::{graphql::generator::*};
 
         Ok(generate_asset_url(&self.image.asset_id, &self.image.file_extension))
+    }
+}
+
+impl ImageRenditionFields for ImageRendition {
+    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.image_rendition.id)
+    }
+
+    fn field_width(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.image_rendition.width)
+    }
+
+    fn field_height(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.image_rendition.height)
+    }
+
+    fn field_name(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.image_rendition.name)
+    }
+
+    fn field_image(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Image, Walked>,
+    ) -> FieldResult<&Image> {
+        Ok(self.image.try_unwrap()?)
+    }
+
+    fn field_media(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, ArticleMedia, Walked>,
+    ) -> FieldResult<&ArticleMedia> {
+        Ok(self.media.try_unwrap()?)
     }
 }
 
