@@ -20,9 +20,10 @@ This project is using the following libraries:
 
 ## Installation
 
-1. Open `.env` file and set the value of `DATABASE_URL` to the URL of the Publisher's database (postgres).
-2. Run `cargo run`
-3. Then go to http://localhost:8000/graphiql
+1. Copy `.env.dist` to `.env`.
+2. Open `.env` file and set the value of `DATABASE_URL` to the URL of the Publisher's database (postgres).
+3. Run `cargo run`
+4. Then go to http://localhost:8000/graphiql
 
 ## Configuration
 
