@@ -6,12 +6,13 @@ edition = "2018"
 
 [dependencies]
 rocket = "0.4.2"
-juniper = "0.12"
-juniper_rocket = "0.3"
+juniper = "0.14"
+juniper_rocket = "0.5"
 dotenv = "0.9.0"
 chrono = "0.4.7"
 diesel = { version = "1.4.2", features = ["postgres", "r2d2", "chrono"] }
 r2d2 = "0.8.5"
-juniper-from-schema = "^0.3"
-juniper-eager-loading = "^0.2"
+juniper-from-schema = "^0.4"
+juniper-eager-loading = "^0.3"
 base64 = "0.10"
+serde_json = "1.0"

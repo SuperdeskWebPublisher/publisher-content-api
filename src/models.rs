@@ -1,7 +1,7 @@
 pub mod pagination;
 
 use chrono::prelude::*;
-use crate::schema::{swp_article, swp_route, swp_article_media, swp_image, swp_image_rendition, swp_author, swp_article_author, swp_keyword, swp_article_keyword};
+use crate::schema::{swp_article, swp_route, swp_article_media, swp_image, swp_image_rendition, swp_author, swp_article_author, swp_keyword, swp_article_keyword, swp_article_statistics};
 use diesel::deserialize::Queryable;
 use diesel::prelude::*;
 use juniper_eager_loading::impl_load_from_for_diesel;
@@ -17,6 +17,9 @@ pub struct Article {
     pub lead: String,
     pub route_id: i32,
     pub comments_count: i32,
+    pub extra: Option<String>,
+    pub metadata: Option<String>,
+    //pub feature_media: i32,
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
@@ -25,6 +28,14 @@ pub struct Route {
     pub id: i32,
     pub name: String,
     // pub r#type: String,
+}
+
+#[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
+#[table_name = "swp_article_statistics"]
+pub struct Statistics {
+    pub id: i32,
+    pub article_id: i32,
+    pub page_views_number: i32,
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
@@ -118,6 +129,11 @@ impl_load_from_for_diesel! {
         ArticleMedia.id-> (swp_image_rendition.media_id, ImageRendition),
         ImageRendition.media_id -> (swp_article_media.id, ArticleMedia),
 
+        //Article.feature_media -> (swp_article_media.id, ArticleMedia),
+        //ArticleMedia.id -> (swp_article.feature_media, Article),
+
+        Statistics.article_id -> (swp_article.id, Article),
+
         Author.id-> (swp_article_author.author_id, ArticleAuthor),
         Article.id-> (swp_article_author.article_id, ArticleAuthor),
 
@@ -126,6 +142,8 @@ impl_load_from_for_diesel! {
 
         Keyword.id-> (swp_article_keyword.keyword_id, ArticleKeyword),
         Article.id-> (swp_article_keyword.article_id, ArticleKeyword),
+
+        //Article.id-> (swp_article_statistics.article_id, Article),
 
         ArticleKeyword.keyword_id-> (swp_keyword.id, Keyword),
         ArticleKeyword.article_id-> (swp_article.id, Article),

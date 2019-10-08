@@ -1,8 +1,9 @@
-use juniper::{Executor, Context as JuniperContext, FieldResult, FieldError};
+use juniper::{Executor, Context as JuniperContext, FieldResult, FieldError, ID};
 use super::models::Image as ImageModel;
 use super::models::Article as ArticleModel;
 use super::models::Author as AuthorModel;
 use super::models::Keyword as KeywordModel;
+use super::models::Statistics as StatisticsModel;
 use super::models::ArticleAuthor as ArticleAuthorModel;
 use super::models::ArticleKeyword as ArticleKeywordModel;
 use super::models::Route as RouteModel;
@@ -73,8 +74,22 @@ pub struct Article {
     authors: HasManyThrough<Author>,
     #[has_many_through(join_model = "ArticleKeywordModel")]
     keywords: HasManyThrough<Keyword>,
+    // #[has_one(
+    //     foreign_key_field = "feature_media",
+    //     root_model_field = "feature_media",
+    // )]
+    // feature_media: HasOne<Box<ArticleMedia>>,
 }
 
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "StatisticsModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct Statistics {
+    statistics: StatisticsModel,
+}
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
 #[eager_loading(
@@ -104,6 +119,7 @@ pub struct ArticleMedia {
         foreign_key_field = "media_id",
     )]
     renditions: HasMany<ImageRendition>,
+    //feature_media: ArticleMediaModel,
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -151,8 +167,8 @@ pub struct Keyword {
 }
 
 impl ArticleFields for Article {
-    fn field_id(&self, _: &Executor<'_, Context>) -> FieldResult<&i32> {
-        Ok(&self.article.id)
+    fn field_id(&self, _: &Executor<'_, Context>) -> FieldResult<ID> {
+        Ok(ID::new(self.article.id.to_string()))
     }
 
     fn field_title(&self, _: &Executor<'_, Context>) -> FieldResult<&String> {
@@ -177,6 +193,24 @@ impl ArticleFields for Article {
 
     fn field_comments_count(&self, _: &Executor<'_, Context>) -> FieldResult<&i32> {
         Ok(&self.article.comments_count)
+    }
+
+    fn field_statistics(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Statistics, Walked>,
+    ) -> FieldResult<Option<Statistics>> {
+        use crate::schema::swp_article_statistics::dsl;
+        use crate::schema::swp_article_statistics::columns::article_id;
+
+        let conn = &_executor.context().db_con;
+        let statistics = dsl::swp_article_statistics
+            .filter(article_id.eq(self.article.id))
+            .first::<StatisticsModel>(conn)?;
+
+        Ok(Some(Statistics {
+            statistics
+        }))
     }
 
     // fn field_published_at(&self, _: &Executor<'_, Context>) -> FieldResult<&Option<DateTime<Utc>>> {
@@ -214,6 +248,22 @@ impl ArticleFields for Article {
     ) -> FieldResult<&Vec<Keyword>> {
         Ok(self.keywords.try_unwrap()?)
     }
+
+    fn field_extra(&self, _: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.article.extra)
+    }
+
+    fn field_metadata(&self, _: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.article.metadata)
+    }
+
+    // fn field_feature_media(
+    //     &self,
+    //     _executor: &Executor<'_, Context>,
+    //     _trail: &QueryTrail<'_, ArticleMedia, Walked>,
+    // ) -> FieldResult<&ArticleMedia> {
+    //     Ok(self.feature_media.try_unwrap()?)
+    // }
 }
 
 impl AuthorFields for Author {
@@ -259,6 +309,7 @@ impl AuthorFields for Author {
     //     //Ok(generate_asset_url(&self.media.image.asset_id, &self.media.image.file_extension))
     //     Ok(&self.media.key)
     // }
+    
 }
 
 impl KeywordFields for Keyword {
@@ -272,6 +323,16 @@ impl KeywordFields for Keyword {
 
     fn field_slug(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
         Ok(&self.keyword.slug)
+    }
+}
+
+impl StatisticsFields for Statistics {
+    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.statistics.id)
+    }
+
+    fn field_page_views_number(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.statistics.page_views_number)
     }
 }
 
@@ -486,7 +547,7 @@ fn map_models_to_graphql_nodes<'a, T, M: Clone>(
     con: &PgConnection,
 ) -> Result<Vec<T>, diesel::result::Error>
 where
-    T: EagerLoadAllChildren<QueryTrail<'a, T, Walked>>
+    T: EagerLoadAllChildren
         + GraphqlNodeForModel<Model = M, Connection = PgConnection, Error = diesel::result::Error>,
 {
     let mut nodes = T::from_db_models(models);
@@ -495,11 +556,11 @@ where
     Ok(nodes)
 }
 
-impl Clone for Cursor {
-    fn clone(&self) -> Self {
-        Cursor(self.0.clone())
-    }
-}
+// impl Clone for Cursor {
+//     fn clone(&self) -> Self {
+//         Cursor(self.0.clone())
+//     }
+// }
 
 pub struct PageInfo {
     start_cursor: Option<Cursor>,

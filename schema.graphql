@@ -16,7 +16,7 @@ type Mutation {
 }
 
 type Article {
-  id: Int!
+  id: ID! @juniper(ownership: "owned")
   slug: String!
   status: String!
   title: String!
@@ -27,11 +27,19 @@ type Article {
   authors: [Author!]!
   keywords: [Keyword!]!
   commentsCount: Int!
+  extra: String
+  metadata: String
+  statistics: Statistics @juniper(ownership: "owned")
 }
 
 type Route {
   id: Int!
   name: String!
+}
+
+type Statistics {
+  id: Int!
+  pageViewsNumber: Int!
 }
 
 type ArticleMedia {

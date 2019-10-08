@@ -8,6 +8,9 @@ table! {
         lead -> Text,
         route_id -> Int4,
         comments_count -> Int4,
+        extra -> Nullable<Text>,
+        metadata -> Nullable<Text>,
+        // feature_media -> Int4,
     }
 }
 
@@ -88,6 +91,14 @@ table! {
     }
 }
 
+table! {
+    swp_article_statistics (id) {
+        id -> Int4,
+        article_id -> Int4,
+        page_views_number -> Int4,
+    }
+}
+
 joinable!(swp_article -> swp_route (route_id));
 joinable!(swp_article_media -> swp_image (image_id));
 joinable!(swp_image_rendition -> swp_image (image_id));
@@ -99,6 +110,8 @@ joinable!(swp_article_author -> swp_article (article_id));
 joinable!(swp_article_keyword -> swp_article (article_id));
 joinable!(swp_article_keyword -> swp_keyword (keyword_id));
 
+joinable!(swp_article_statistics -> swp_article (article_id));
+
 allow_tables_to_appear_in_same_query!(
     swp_article,
     swp_route,
@@ -108,5 +121,6 @@ allow_tables_to_appear_in_same_query!(
     swp_article_author,
     swp_author,
     swp_article_keyword,
-    swp_keyword
+    swp_keyword,
+    swp_article_statistics
 );
