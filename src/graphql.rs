@@ -74,11 +74,11 @@ pub struct Article {
     authors: HasManyThrough<Author>,
     #[has_many_through(join_model = "ArticleKeywordModel")]
     keywords: HasManyThrough<Keyword>,
-    // #[has_one(
-    //     foreign_key_field = "feature_media",
-    //     root_model_field = "feature_media",
-    // )]
-    // feature_media: HasOne<Box<ArticleMedia>>,
+    #[option_has_one(
+        foreign_key_field = "feature_media",
+        root_model_field = "article_media",
+    )]
+    feature_media: OptionHasOne<ArticleMedia>,
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -119,7 +119,6 @@ pub struct ArticleMedia {
         foreign_key_field = "media_id",
     )]
     renditions: HasMany<ImageRendition>,
-    //feature_media: ArticleMediaModel,
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -257,13 +256,13 @@ impl ArticleFields for Article {
         Ok(&self.article.metadata)
     }
 
-    // fn field_feature_media(
-    //     &self,
-    //     _executor: &Executor<'_, Context>,
-    //     _trail: &QueryTrail<'_, ArticleMedia, Walked>,
-    // ) -> FieldResult<&ArticleMedia> {
-    //     Ok(self.feature_media.try_unwrap()?)
-    // }
+    fn field_feature_media(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, ArticleMedia, Walked>,
+    ) -> FieldResult<&Option<ArticleMedia>> {
+        Ok(&self.feature_media)
+    }
 }
 
 impl AuthorFields for Author {

@@ -19,7 +19,7 @@ pub struct Article {
     pub comments_count: i32,
     pub extra: Option<String>,
     pub metadata: Option<String>,
-    //pub feature_media: i32,
+    pub feature_media: Option<i32>,
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
@@ -110,6 +110,22 @@ pub struct ArticleKeyword {
     pub keyword_id: i32,
 }
 
+impl juniper_eager_loading::LoadFrom<Article> for ArticleMedia {
+    type Error = diesel::result::Error;
+    type Connection = PgConnection;
+    
+    fn load(froms: &[Article], db: &Self::Connection) -> Result<Vec<Self>, Self::Error> {
+        use diesel::pg::expression::dsl::any;
+
+        let from_ids = froms.iter().map(|other| other.id).collect::<Vec<_>>();
+        println!("{:?}", from_ids);
+        swp_article_media::table
+            .filter(swp_article_media::article_id.eq(any(from_ids)))
+            .load(db)
+            .map_err(From::from)
+    }
+}
+
 impl_load_from_for_diesel! {
     (
         error = diesel::result::Error,
@@ -123,10 +139,10 @@ impl_load_from_for_diesel! {
         i32 -> (swp_author, Author),
         i32 -> (swp_keyword, Keyword),
 
-        Article.id -> (swp_article_media.article_id, ArticleMedia),
+        //Article.id -> (swp_article_media.article_id, ArticleMedia),
         ArticleMedia.article_id -> (swp_article.id, Article),
         Image.id -> (swp_image_rendition.image_id, ImageRendition),
-        ArticleMedia.id-> (swp_image_rendition.media_id, ImageRendition),
+        ArticleMedia.id -> (swp_image_rendition.media_id, ImageRendition),
         ImageRendition.media_id -> (swp_article_media.id, ArticleMedia),
 
         //Article.feature_media -> (swp_article_media.id, ArticleMedia),
@@ -142,8 +158,6 @@ impl_load_from_for_diesel! {
 
         Keyword.id-> (swp_article_keyword.keyword_id, ArticleKeyword),
         Article.id-> (swp_article_keyword.article_id, ArticleKeyword),
-
-        //Article.id-> (swp_article_statistics.article_id, Article),
 
         ArticleKeyword.keyword_id-> (swp_keyword.id, Keyword),
         ArticleKeyword.article_id-> (swp_article.id, Article),

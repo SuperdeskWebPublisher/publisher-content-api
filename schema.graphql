@@ -30,6 +30,7 @@ type Article {
   extra: String
   metadata: String
   statistics: Statistics @juniper(ownership: "owned")
+  featureMedia: ArticleMedia
 }
 
 type Route {

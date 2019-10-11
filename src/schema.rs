@@ -10,7 +10,7 @@ table! {
         comments_count -> Int4,
         extra -> Nullable<Text>,
         metadata -> Nullable<Text>,
-        // feature_media -> Int4,
+        feature_media -> Nullable<Int4>,
     }
 }
 
@@ -111,6 +111,8 @@ joinable!(swp_article_keyword -> swp_article (article_id));
 joinable!(swp_article_keyword -> swp_keyword (keyword_id));
 
 joinable!(swp_article_statistics -> swp_article (article_id));
+
+joinable!(swp_article -> swp_article_media (feature_media));
 
 allow_tables_to_appear_in_same_query!(
     swp_article,
