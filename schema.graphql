@@ -5,6 +5,9 @@ schema {
 
 type Query {
   apiVersion: String! @juniper(ownership: "owned")
+  """
+  A paginated connection of all articles
+  """
   articles(
     after: Cursor
     first: Int = 20
@@ -30,6 +33,20 @@ type Article {
   extra: String
   metadata: String
   statistics: Statistics @juniper(ownership: "owned")
+  featureMedia: FeatureMedia @juniper(ownership: "owned")
+}
+
+type FeatureMedia {
+  id: Int!
+  key: String!
+  body: String!
+  description: String!
+  located: String!
+  byLine: String!
+  mimetype: String!
+  usageTerms: String!
+  image: Image @juniper(ownership: "owned")
+  renditions: [FeatureImageRendition!]! @juniper(ownership: "owned")
 }
 
 type Route {
@@ -61,6 +78,14 @@ type Image {
   assetId: String!
   fileExtension: String!
   url: String! @juniper(ownership: "owned")
+}
+
+type FeatureImageRendition {
+  id: Int!
+  image: Image @juniper(ownership: "owned")
+  width: Int!
+  height: Int!
+  name: String!
 }
 
 type ImageRendition {

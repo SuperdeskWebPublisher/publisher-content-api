@@ -73,12 +73,7 @@ pub struct Article {
     #[has_many_through(join_model = "ArticleAuthorModel")]
     authors: HasManyThrough<Author>,
     #[has_many_through(join_model = "ArticleKeywordModel")]
-    keywords: HasManyThrough<Keyword>,
-    // #[has_one(
-    //     foreign_key_field = "feature_media",
-    //     root_model_field = "feature_media",
-    // )]
-    // feature_media: HasOne<Box<ArticleMedia>>,
+    keywords: HasManyThrough<Keyword>
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -122,6 +117,12 @@ pub struct ArticleMedia {
     //feature_media: ArticleMediaModel,
 }
 
+pub struct FeatureMedia {
+    media: ArticleMediaModel,
+    image: ImageModel,
+    renditions: Vec<ImageRenditionModel>
+}
+
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
 #[eager_loading(
     model = "ImageModel",
@@ -130,6 +131,11 @@ pub struct ArticleMedia {
 )]
 pub struct Image {
     image: ImageModel,
+}
+
+pub struct FeatureImageRendition {
+    image_rendition: ImageRenditionModel,
+    image: ImageModel
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -257,13 +263,42 @@ impl ArticleFields for Article {
         Ok(&self.article.metadata)
     }
 
-    // fn field_feature_media(
-    //     &self,
-    //     _executor: &Executor<'_, Context>,
-    //     _trail: &QueryTrail<'_, ArticleMedia, Walked>,
-    // ) -> FieldResult<&ArticleMedia> {
-    //     Ok(self.feature_media.try_unwrap()?)
-    // }
+    fn field_feature_media(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, FeatureMedia, Walked>,
+    ) -> FieldResult<Option<FeatureMedia>> {
+        use crate::schema::swp_article_media::dsl as article_media_dsl;
+        use crate::schema::swp_image::dsl as image_dsl;
+        use crate::schema::swp_image_rendition::dsl as image_rendition_dsl;
+        use crate::schema::swp_article_media::columns::article_id;
+        use crate::schema::swp_article_media::columns::key;
+        use crate::schema::swp_image::columns::id;
+        use crate::schema::swp_image_rendition::columns::media_id;
+        use crate::schema::swp_image_rendition::columns::image_id;
+
+        // TODO add joins
+        let conn = &_executor.context().db_con;
+        let media = article_media_dsl::swp_article_media
+            .filter(article_id.eq(self.article.id))
+            .filter(key.eq("featuremedia"))
+            .first::<ArticleMediaModel>(conn)?;
+
+        let image = image_dsl::swp_image
+            .filter(id.eq(media.image_id))
+            .first::<ImageModel>(conn)?;
+
+        let renditions: Vec<ImageRenditionModel> = image_rendition_dsl::swp_image_rendition
+            .filter(image_id.eq(media.image_id))
+            .filter(media_id.eq(media.id))
+            .load(conn)?;
+
+        Ok(Some(FeatureMedia {
+            media,
+            image,
+            renditions
+        }))
+    }
 }
 
 impl AuthorFields for Author {
@@ -343,6 +378,69 @@ impl RouteFields for Route {
 
     fn field_name(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
         Ok(&self.route.name)
+    }
+}
+
+impl FeatureMediaFields for FeatureMedia {
+    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.media.id)
+    }
+
+    fn field_key(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.media.key)
+    }
+
+    fn field_body(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.media.body)
+    }
+
+    fn field_description(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.media.description)
+    }
+
+    fn field_located(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.media.located)
+    }
+
+    fn field_by_line(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.media.by_line)
+    }
+
+    fn field_mimetype(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.media.mimetype)
+    }
+
+    fn field_usage_terms(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.media.usage_terms)
+    }
+
+    fn field_image(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Image, Walked>,
+    ) -> FieldResult<Option<Image>> {
+        let image = self.image.clone();
+
+        Ok(Some(Image {
+            image
+        }))
+    }
+
+    fn field_renditions(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, FeatureImageRendition, Walked>,
+    ) -> FieldResult<Vec<FeatureImageRendition>> {
+        let renditions = self.renditions
+            .clone()
+            .into_iter()
+            .map(|rendition| FeatureImageRendition {
+                image_rendition: rendition.clone(),
+                image: self.image.clone(),
+            })
+            .collect::<Vec<_>>();
+
+        Ok(renditions)
     }
 }
 
@@ -536,6 +634,36 @@ impl ImageRenditionFields for ImageRendition {
         _trail: &QueryTrail<'_, ArticleMedia, Walked>,
     ) -> FieldResult<&ArticleMedia> {
         Ok(self.media.try_unwrap()?)
+    }
+}
+
+impl FeatureImageRenditionFields for FeatureImageRendition {
+    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.image_rendition.id)
+    }
+
+    fn field_width(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.image_rendition.width)
+    }
+
+    fn field_height(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.image_rendition.height)
+    }
+
+    fn field_name(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.image_rendition.name)
+    }
+
+    fn field_image(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Image, Walked>,
+    ) -> FieldResult<Option<Image>> {
+        let image = self.image.clone();
+
+        Ok(Some(Image {
+            image
+        }))
     }
 }
 
