@@ -3,6 +3,9 @@
 #[macro_use]
 extern crate rocket;
 #[macro_use]
+extern crate serde;
+extern crate serde_json;
+#[macro_use]
 extern crate diesel;
 
 mod graphql;

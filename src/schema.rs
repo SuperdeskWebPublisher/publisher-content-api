@@ -10,7 +10,7 @@ table! {
         comments_count -> Int4,
         extra -> Nullable<Text>,
         metadata -> Nullable<Text>,
-        // feature_media -> Int4,
+        feature_media -> Nullable<Int4>,
     }
 }
 
@@ -66,6 +66,16 @@ table! {
         twitter -> Nullable<Varchar>,
         facebook -> Nullable<Varchar>,
         instagram -> Nullable<Varchar>,
+        author_media_id -> Nullable<Int4>,
+    }
+}
+
+table! {
+    swp_author_media (id) {
+        id -> Int4,
+        //author_id -> Nullable<Int4>,
+        image_id -> Int4,
+        key -> Varchar,
     }
 }
 
@@ -120,6 +130,7 @@ allow_tables_to_appear_in_same_query!(
     swp_image_rendition,
     swp_article_author,
     swp_author,
+    swp_author_media,
     swp_article_keyword,
     swp_keyword,
     swp_article_statistics

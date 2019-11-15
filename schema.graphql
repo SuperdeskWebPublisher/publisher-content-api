@@ -30,6 +30,7 @@ type Article {
   extra: String
   metadata: String
   statistics: Statistics @juniper(ownership: "owned")
+  featureMedia: ArticleMedia @juniper(ownership: "as_ref")
 }
 
 type Route {
@@ -91,7 +92,15 @@ type Author {
   twitter: String
   facebook: String
   instagram: String
+  avatar: AuthorAvatar @juniper(ownership: "as_ref")
 }
+
+type AuthorAvatar {
+  id: Int!
+  key: String!
+  image: Image!
+}
+
 
 type Keyword {
   id: Int!

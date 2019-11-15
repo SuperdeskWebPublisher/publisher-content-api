@@ -2,6 +2,7 @@ use juniper::{Executor, Context as JuniperContext, FieldResult, FieldError, ID};
 use super::models::Image as ImageModel;
 use super::models::Article as ArticleModel;
 use super::models::Author as AuthorModel;
+use super::models::AuthorAvatar as AuthorAvatarModel;
 use super::models::Keyword as KeywordModel;
 use super::models::Statistics as StatisticsModel;
 use super::models::ArticleAuthor as ArticleAuthorModel;
@@ -20,7 +21,14 @@ use rocket::{
     request::{self, FromRequest, Request},
     Outcome, State,
 };
-extern crate base64;
+// extern crate base64;
+// #[macro_use]
+// extern crate serde_derive;
+// extern crate serde;
+// extern crate serde_json;
+use std::fmt;
+use std::marker::PhantomData;
+use serde::de::{Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
 use base64::{encode, decode};
 pub mod generator;
 
@@ -74,11 +82,11 @@ pub struct Article {
     authors: HasManyThrough<Author>,
     #[has_many_through(join_model = "ArticleKeywordModel")]
     keywords: HasManyThrough<Keyword>,
-    // #[has_one(
-    //     foreign_key_field = "feature_media",
-    //     root_model_field = "feature_media",
-    // )]
-    // feature_media: HasOne<Box<ArticleMedia>>,
+    #[option_has_one(
+        foreign_key_field = "feature_media",
+        root_model_field = "article_media",
+    )]
+    feature_media: OptionHasOne<Box<ArticleMedia>>,
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -119,7 +127,7 @@ pub struct ArticleMedia {
         foreign_key_field = "media_id",
     )]
     renditions: HasMany<ImageRendition>,
-    //feature_media: ArticleMediaModel,
+    feature_media: ArticleMediaModel,
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -153,7 +161,24 @@ pub struct ImageRendition {
     connection = "PgConnection"
 )]
 pub struct Author {
-    author: AuthorModel
+    author: AuthorModel,
+    #[option_has_one(
+        foreign_key_field = "author_media_id",
+        root_model_field = "author_avatar",
+    )]
+    avatar: OptionHasOne<Box<AuthorAvatar>>,
+}
+
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "AuthorAvatarModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct AuthorAvatar {
+    author_avatar: AuthorAvatarModel,
+    #[has_one(default)]
+    image: HasOne<Image>
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -257,13 +282,19 @@ impl ArticleFields for Article {
         Ok(&self.article.metadata)
     }
 
-    // fn field_feature_media(
-    //     &self,
-    //     _executor: &Executor<'_, Context>,
-    //     _trail: &QueryTrail<'_, ArticleMedia, Walked>,
-    // ) -> FieldResult<&ArticleMedia> {
-    //     Ok(self.feature_media.try_unwrap()?)
-    // }
+    fn field_feature_media<'a>(
+        &self,
+        _executor: &Executor<'a, Context>,
+        _trail: &QueryTrail<'a, ArticleMedia, Walked>,
+    ) -> FieldResult<Option<&ArticleMedia>> {
+        let feature_media = self
+            .feature_media
+            .try_unwrap()?
+            .as_ref()
+            .map(|boxed| &**boxed);
+
+        Ok(feature_media)
+    }
 }
 
 impl AuthorFields for Author {
@@ -303,13 +334,37 @@ impl AuthorFields for Author {
         Ok(&self.author.instagram)
     }
 
-    // fn field_avatar_url(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
-    //     use crate::{graphql::generator::*};
+    fn field_avatar<'a>(
+        &self,
+        _executor: &Executor<'a, Context>,
+        _trail: &QueryTrail<'a, AuthorAvatar, Walked>,
+    ) -> FieldResult<Option<&AuthorAvatar>> {
+        let avatar = self
+            .avatar
+            .try_unwrap()?
+            .as_ref()
+            .map(|boxed| &**boxed);
 
-    //     //Ok(generate_asset_url(&self.media.image.asset_id, &self.media.image.file_extension))
-    //     Ok(&self.media.key)
-    // }
-    
+        Ok(avatar)
+    }  
+}
+
+impl AuthorAvatarFields for AuthorAvatar {
+    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.author_avatar.id)
+    }
+
+    fn field_key(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.author_avatar.key)
+    }
+
+    fn field_image(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Image, Walked>,
+    ) -> FieldResult<&Image> {
+        Ok(self.image.try_unwrap()?)
+    }
 }
 
 impl KeywordFields for Keyword {
@@ -400,8 +455,8 @@ impl ArticleMediaFields for ArticleMedia {
         _executor: &Executor<'_, Context>,
         _trail: &QueryTrail<'_, ImageRendition, Walked>,
     ) -> FieldResult<&Vec<ImageRendition>> {
-        println!("{:?}", self.renditions);
-        Ok(self.renditions.try_unwrap()?)
+        println!("{:?}", self);
+        self.renditions.try_unwrap().map_err(From::from)
     }
 }
 
@@ -438,7 +493,7 @@ fn articles_connections(
     let page_size = i64::from(page_size);
 
     let cursor_value = cursor
-        .unwrap_or_else(|| Cursor("Mw==".to_string()))
+        .unwrap_or_else(|| Cursor("MQ==".to_string()))
         .0
         .parse::<String>()
         .expect("invalid cursor");
@@ -449,8 +504,11 @@ fn articles_connections(
     let val = (page_number + 1).to_string();
     let next_page_cursor = Cursor(encode(&val));
 
-    let (article_models, total_count) = swp_article::table
+    let base_query = swp_article::table
         .select(swp_article::all_columns)
+        .order(swp_article::id);
+
+    let (article_models, total_count) = base_query
         .paginate(page_number)
         .per_page(page_size)
         .load_and_count_pages::<ArticleModel>(conn)?;
