@@ -133,6 +133,14 @@ table! {
     }
 }
 
+table! {
+    swp_article_related (id) {
+        id -> Int4,
+        article_id -> Int4,
+        relates_to_id -> Int4,
+    }
+}
+
 joinable!(swp_article -> swp_route (route_id));
 joinable!(swp_article_media -> swp_image (image_id));
 joinable!(swp_image_rendition -> swp_image (image_id));
@@ -159,5 +167,6 @@ allow_tables_to_appear_in_same_query!(
     swp_keyword,
     swp_article_statistics,
     swp_article_seo_metadata,
-    swp_article_seo_media
+    swp_article_seo_media,
+    swp_article_related
 );

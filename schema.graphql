@@ -32,6 +32,7 @@ type Article {
   statistics: Statistics @juniper(ownership: "owned")
   featureMedia: ArticleMedia @juniper(ownership: "as_ref")
   seoMetadata: ArticleSeoMetadata
+  relatedArticles: [RelatedArticle!]!
 }
 
 type Route {
@@ -125,6 +126,10 @@ type ArticleSeoMedia {
   id: Int!
   key: String!
   image: Image!
+}
+
+type RelatedArticle {
+  article: Article!
 }
 
 type ArticleConnection {

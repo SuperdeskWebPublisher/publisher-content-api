@@ -14,7 +14,8 @@ use crate::schema::{
     swp_article_keyword, 
     swp_article_statistics,
     swp_article_seo_metadata,
-    swp_article_seo_media
+    swp_article_seo_media,
+    swp_article_related
 };
 use diesel::deserialize::Queryable;
 use diesel::prelude::*;
@@ -158,6 +159,14 @@ pub struct ArticleSeoMedia {
     pub key: String
 }
 
+#[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
+#[table_name = "swp_article_related"]
+pub struct RelatedArticle {
+    pub id: i32,
+    pub article_id: i32,
+    pub relates_to_id: i32,
+}
+
 impl_load_from_for_diesel_pg! {
     (
         error = diesel::result::Error,
@@ -173,6 +182,7 @@ impl_load_from_for_diesel_pg! {
         i32 -> (swp_author_media, AuthorAvatar),
         i32 -> (swp_article_seo_metadata, ArticleSeoMetadata),
         i32 -> (swp_article_seo_media, ArticleSeoMedia),
+        i32 -> (swp_article_related, RelatedArticle),
 
         Article.id -> (swp_article_media.article_id, ArticleMedia),
         ArticleMedia.article_id -> (swp_article.id, Article),
@@ -198,5 +208,7 @@ impl_load_from_for_diesel_pg! {
 
         ArticleKeyword.keyword_id-> (swp_keyword.id, Keyword),
         ArticleKeyword.article_id-> (swp_article.id, Article),
+
+        Article.id -> (swp_article_related.article_id, RelatedArticle),
     }
 }

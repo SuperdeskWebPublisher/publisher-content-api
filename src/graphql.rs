@@ -12,6 +12,7 @@ use super::models::ArticleMedia as ArticleMediaModel;
 use super::models::ImageRendition as ImageRenditionModel;
 use super::models::ArticleSeoMetadata as ArticleSeoMetadataModel;
 use super::models::ArticleSeoMedia as ArticleSeoMediaModel;
+use super::models::RelatedArticle as RelatedArticleModel;
 use juniper_eager_loading::{prelude::*, *};
 use juniper_from_schema::graphql_schema_from_file;
 use crate::db::{DbConn, DbConnPool};
@@ -92,7 +93,12 @@ pub struct Article {
     #[option_has_one(
         root_model_field = "article_seo_metadata",
     )]
-    seo_metadata: OptionHasOne<ArticleSeoMetadata>
+    seo_metadata: OptionHasOne<ArticleSeoMetadata>,
+    #[has_many(
+        root_model_field = "related_article",
+        foreign_key_field = "relates_to_id",
+    )]
+    related_articles: HasMany<RelatedArticle>,
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -234,6 +240,18 @@ pub struct ArticleSeoMedia {
     image: HasOne<Image>
 }
 
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "RelatedArticleModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct RelatedArticle {
+    related_article: RelatedArticleModel,
+    #[has_one(default)]
+    article: HasOne<Article>,
+}
+
 impl ArticleFields for Article {
     fn field_id(&self, _: &Executor<'_, Context>) -> FieldResult<ID> {
         Ok(ID::new(self.article.id.to_string()))
@@ -345,6 +363,14 @@ impl ArticleFields for Article {
         _trail: &QueryTrail<'_, ArticleSeoMetadata, Walked>,
     ) -> FieldResult<&Option<ArticleSeoMetadata>> {
         self.seo_metadata.try_unwrap().map_err(From::from)
+    }
+
+    fn field_related_articles(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, RelatedArticle, Walked>,
+    ) -> FieldResult<&Vec<RelatedArticle>> {
+        Ok(self.related_articles.try_unwrap()?)
     }
 }
 
@@ -600,6 +626,17 @@ impl ArticleSeoMediaFields for ArticleSeoMedia {
         Ok(self.image.try_unwrap()?)
     }
 }
+
+impl RelatedArticleFields for RelatedArticle {
+    fn field_article(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Article, Walked>,
+    ) -> FieldResult<&Article> {
+        Ok(self.article.try_unwrap()?)
+    }
+}
+
 
 impl QueryFields for Query {
     fn field_api_version(
