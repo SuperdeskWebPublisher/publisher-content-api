@@ -10,6 +10,8 @@ use super::models::ArticleKeyword as ArticleKeywordModel;
 use super::models::Route as RouteModel;
 use super::models::ArticleMedia as ArticleMediaModel;
 use super::models::ImageRendition as ImageRenditionModel;
+use super::models::ArticleSeoMetadata as ArticleSeoMetadataModel;
+use super::models::ArticleSeoMedia as ArticleSeoMediaModel;
 use juniper_eager_loading::{prelude::*, *};
 use juniper_from_schema::graphql_schema_from_file;
 use crate::db::{DbConn, DbConnPool};
@@ -87,6 +89,10 @@ pub struct Article {
         root_model_field = "article_media",
     )]
     feature_media: OptionHasOne<Box<ArticleMedia>>,
+    #[option_has_one(
+        root_model_field = "article_seo_metadata",
+    )]
+    seo_metadata: OptionHasOne<ArticleSeoMetadata>
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -189,6 +195,43 @@ pub struct AuthorAvatar {
 )]
 pub struct Keyword {
     keyword: KeywordModel
+}
+
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "ArticleSeoMetadataModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct ArticleSeoMetadata {
+    article_seo_metadata: ArticleSeoMetadataModel,
+    #[option_has_one(
+        foreign_key_field = "seo_meta_media_id",
+        root_model_field = "article_seo_media",
+    )]
+    seo_meta_media: OptionHasOne<Box<ArticleSeoMedia>>,
+    #[option_has_one(
+        foreign_key_field = "seo_og_media_id",
+        root_model_field = "article_seo_media",
+    )]
+    seo_og_media: OptionHasOne<Box<ArticleSeoMedia>>,
+    #[option_has_one(
+        foreign_key_field = "seo_twitter_media_id",
+        root_model_field = "article_seo_media",
+    )]
+    seo_twitter_media: OptionHasOne<Box<ArticleSeoMedia>>,
+}
+
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "ArticleSeoMediaModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct ArticleSeoMedia {
+    article_seo_media: ArticleSeoMediaModel,
+    #[has_one(default)]
+    image: HasOne<Image>
 }
 
 impl ArticleFields for Article {
@@ -294,6 +337,14 @@ impl ArticleFields for Article {
             .map(|boxed| &**boxed);
 
         Ok(feature_media)
+    }
+
+    fn field_seo_metadata(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, ArticleSeoMetadata, Walked>,
+    ) -> FieldResult<&Option<ArticleSeoMetadata>> {
+        self.seo_metadata.try_unwrap().map_err(From::from)
     }
 }
 
@@ -457,6 +508,96 @@ impl ArticleMediaFields for ArticleMedia {
     ) -> FieldResult<&Vec<ImageRendition>> {
         println!("{:?}", self);
         self.renditions.try_unwrap().map_err(From::from)
+    }
+}
+
+impl ArticleSeoMetadataFields for ArticleSeoMetadata {
+    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.article_seo_metadata.id)
+    }
+
+    fn field_meta_title(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.article_seo_metadata.meta_title)
+    }
+
+    fn field_meta_description(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.article_seo_metadata.meta_description)
+    }
+
+    fn field_og_title(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.article_seo_metadata.og_title)
+    }
+
+    fn field_og_description(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.article_seo_metadata.og_description)
+    }
+    
+    fn field_twitter_title(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.article_seo_metadata.twitter_title)
+    }
+
+    fn field_twitter_description(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<String>> {
+        Ok(&self.article_seo_metadata.twitter_description)
+    }
+
+    fn field_seo_meta_media<'a>(
+        &self,
+        _executor: &Executor<'a, Context>,
+        _trail: &QueryTrail<'a, ArticleSeoMedia, Walked>,
+    ) -> FieldResult<Option<&ArticleSeoMedia>> {
+        let meta_media = self
+            .seo_meta_media
+            .try_unwrap()?
+            .as_ref()
+            .map(|boxed| &**boxed);
+
+        Ok(meta_media)
+    }
+        
+    fn field_seo_og_media<'a>(
+        &self,
+        _executor: &Executor<'a, Context>,
+        _trail: &QueryTrail<'a, ArticleSeoMedia, Walked>,
+    ) -> FieldResult<Option<&ArticleSeoMedia>> {
+        let og_media = self
+            .seo_og_media
+            .try_unwrap()?
+            .as_ref()
+            .map(|boxed| &**boxed);
+
+        Ok(og_media)
+    }
+
+    fn field_seo_twitter_media<'a>(
+        &self,
+        _executor: &Executor<'a, Context>,
+        _trail: &QueryTrail<'a, ArticleSeoMedia, Walked>,
+    ) -> FieldResult<Option<&ArticleSeoMedia>> {
+        let twitter_media = self
+            .seo_twitter_media
+            .try_unwrap()?
+            .as_ref()
+            .map(|boxed| &**boxed);
+
+        Ok(twitter_media)
+    }
+}
+
+impl ArticleSeoMediaFields for ArticleSeoMedia {
+    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.article_seo_media.id)
+    }
+
+    fn field_key(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.article_seo_media.key)
+    }
+
+    fn field_image(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Image, Walked>,
+    ) -> FieldResult<&Image> {
+        Ok(self.image.try_unwrap()?)
     }
 }
 

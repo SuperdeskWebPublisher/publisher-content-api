@@ -11,6 +11,7 @@ table! {
         extra -> Nullable<Text>,
         metadata -> Nullable<Text>,
         feature_media -> Nullable<Int4>,
+        seo_metadata_id -> Nullable<Int4>,
     }
 }
 
@@ -109,6 +110,29 @@ table! {
     }
 }
 
+table! {
+    swp_article_seo_media (id) {
+        id -> Int4,
+        image_id -> Int4,
+        key -> Varchar,
+    }
+}
+
+table! {
+    swp_article_seo_metadata (id) {
+        id -> Int4,
+        meta_title -> Nullable<Varchar>,
+        meta_description -> Nullable<Varchar>,
+        og_title -> Nullable<Varchar>,
+        og_description -> Nullable<Varchar>,
+        twitter_title -> Nullable<Varchar>,
+        twitter_description -> Nullable<Varchar>,
+        seo_meta_media_id -> Nullable<Int4>,
+        seo_og_media_id -> Nullable<Int4>,
+        seo_twitter_media_id -> Nullable<Int4>,
+    }
+}
+
 joinable!(swp_article -> swp_route (route_id));
 joinable!(swp_article_media -> swp_image (image_id));
 joinable!(swp_image_rendition -> swp_image (image_id));
@@ -133,5 +157,7 @@ allow_tables_to_appear_in_same_query!(
     swp_author_media,
     swp_article_keyword,
     swp_keyword,
-    swp_article_statistics
+    swp_article_statistics,
+    swp_article_seo_metadata,
+    swp_article_seo_media
 );

@@ -1,7 +1,21 @@
 pub mod pagination;
 
 use chrono::prelude::*;
-use crate::schema::{swp_article, swp_route, swp_article_media, swp_image, swp_image_rendition, swp_author, swp_author_media, swp_article_author, swp_keyword, swp_article_keyword, swp_article_statistics};
+use crate::schema::{
+    swp_article, 
+    swp_route, 
+    swp_article_media, 
+    swp_image, 
+    swp_image_rendition, 
+    swp_author, 
+    swp_author_media, 
+    swp_article_author, 
+    swp_keyword, 
+    swp_article_keyword, 
+    swp_article_statistics,
+    swp_article_seo_metadata,
+    swp_article_seo_media
+};
 use diesel::deserialize::Queryable;
 use diesel::prelude::*;
 use juniper_eager_loading::impl_load_from_for_diesel_pg;
@@ -20,6 +34,7 @@ pub struct Article {
     pub extra: Option<String>,
     pub metadata: Option<String>,
     pub feature_media: Option<i32>,
+    pub seo_metadata_id: Option<i32>,
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
@@ -120,6 +135,29 @@ pub struct ArticleKeyword {
     pub keyword_id: i32,
 }
 
+#[derive(Identifiable, Queryable, Debug, PartialEq, Clone)]
+#[table_name = "swp_article_seo_metadata"]
+pub struct ArticleSeoMetadata {
+    pub id: i32,
+    pub meta_title: Option<String>,
+    pub meta_description: Option<String>,
+    pub og_title: Option<String>,
+    pub og_description: Option<String>,
+    pub twitter_title: Option<String>,
+    pub twitter_description: Option<String>,
+    pub seo_meta_media_id: Option<i32>,
+    pub seo_og_media_id: Option<i32>,
+    pub seo_twitter_media_id: Option<i32>,
+}
+
+#[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
+#[table_name = "swp_article_seo_media"]
+pub struct ArticleSeoMedia {
+    pub id: i32,
+    pub image_id: i32,
+    pub key: String
+}
+
 impl_load_from_for_diesel_pg! {
     (
         error = diesel::result::Error,
@@ -133,9 +171,13 @@ impl_load_from_for_diesel_pg! {
         i32 -> (swp_author, Author),
         i32 -> (swp_keyword, Keyword),
         i32 -> (swp_author_media, AuthorAvatar),
+        i32 -> (swp_article_seo_metadata, ArticleSeoMetadata),
+        i32 -> (swp_article_seo_media, ArticleSeoMedia),
 
         Article.id -> (swp_article_media.article_id, ArticleMedia),
         ArticleMedia.article_id -> (swp_article.id, Article),
+
+        // Image.id -> (swp_article_seo_media.image_id, Image),
 
         //Image.id -> (swp_image_rendition.image_id, ImageRendition),
         ArticleMedia.id-> (swp_image_rendition.media_id, ImageRendition),
