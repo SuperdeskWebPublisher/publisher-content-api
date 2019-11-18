@@ -141,6 +141,20 @@ table! {
     }
 }
 
+table! {
+    swp_article_source (id) {
+        id -> Int4,
+        name -> Varchar,
+    }
+}
+
+table! {
+    swp_article_sources (article_id) {
+        article_id -> Int4,
+        source_id -> Int4,
+    }
+}
+
 joinable!(swp_article -> swp_route (route_id));
 joinable!(swp_article_media -> swp_image (image_id));
 joinable!(swp_image_rendition -> swp_image (image_id));
@@ -151,6 +165,9 @@ joinable!(swp_article_author -> swp_article (article_id));
 
 joinable!(swp_article_keyword -> swp_article (article_id));
 joinable!(swp_article_keyword -> swp_keyword (keyword_id));
+
+joinable!(swp_article_sources -> swp_article (article_id));
+joinable!(swp_article_sources -> swp_article_source (source_id));
 
 joinable!(swp_article_statistics -> swp_article (article_id));
 
@@ -168,5 +185,7 @@ allow_tables_to_appear_in_same_query!(
     swp_article_statistics,
     swp_article_seo_metadata,
     swp_article_seo_media,
-    swp_article_related
+    swp_article_related,
+    swp_article_source,
+    swp_article_sources
 );

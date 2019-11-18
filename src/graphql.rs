@@ -13,6 +13,8 @@ use super::models::ImageRendition as ImageRenditionModel;
 use super::models::ArticleSeoMetadata as ArticleSeoMetadataModel;
 use super::models::ArticleSeoMedia as ArticleSeoMediaModel;
 use super::models::RelatedArticle as RelatedArticleModel;
+use super::models::ArticleSource as ArticleSourceModel;
+use super::models::Source as SourceModel;
 use juniper_eager_loading::{prelude::*, *};
 use juniper_from_schema::graphql_schema_from_file;
 use crate::db::{DbConn, DbConnPool};
@@ -99,6 +101,8 @@ pub struct Article {
         foreign_key_field = "relates_to_id",
     )]
     related_articles: HasMany<RelatedArticle>,
+    #[has_many_through(join_model = "ArticleSourceModel")]
+    sources: HasManyThrough<Source>,
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -252,6 +256,17 @@ pub struct RelatedArticle {
     article: HasOne<Article>,
 }
 
+
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "SourceModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct Source {
+    source: SourceModel
+}
+
 impl ArticleFields for Article {
     fn field_id(&self, _: &Executor<'_, Context>) -> FieldResult<ID> {
         Ok(ID::new(self.article.id.to_string()))
@@ -371,6 +386,14 @@ impl ArticleFields for Article {
         _trail: &QueryTrail<'_, RelatedArticle, Walked>,
     ) -> FieldResult<&Vec<RelatedArticle>> {
         Ok(self.related_articles.try_unwrap()?)
+    }
+
+    fn field_sources(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Source, Walked>,
+    ) -> FieldResult<&Vec<Source>> {
+        Ok(self.sources.try_unwrap()?)
     }
 }
 
@@ -637,6 +660,15 @@ impl RelatedArticleFields for RelatedArticle {
     }
 }
 
+impl SourceFields for Source {
+    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
+        Ok(&self.source.id)
+    }
+
+    fn field_name(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.source.name)
+    }
+}
 
 impl QueryFields for Query {
     fn field_api_version(
