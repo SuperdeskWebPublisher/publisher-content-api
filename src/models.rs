@@ -1,10 +1,27 @@
 pub mod pagination;
 
 use chrono::prelude::*;
-use crate::schema::{swp_article, swp_route, swp_article_media, swp_image, swp_image_rendition, swp_author, swp_article_author, swp_keyword, swp_article_keyword, swp_article_statistics};
+use crate::schema::{
+    swp_article, 
+    swp_route, 
+    swp_article_media, 
+    swp_image, 
+    swp_image_rendition, 
+    swp_author, 
+    swp_author_media, 
+    swp_article_author, 
+    swp_keyword, 
+    swp_article_keyword, 
+    swp_article_statistics,
+    swp_article_seo_metadata,
+    swp_article_seo_media,
+    swp_article_related,
+    swp_article_source,
+    swp_article_sources
+};
 use diesel::deserialize::Queryable;
 use diesel::prelude::*;
-use juniper_eager_loading::impl_load_from_for_diesel;
+use juniper_eager_loading::impl_load_from_for_diesel_pg;
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
 #[table_name = "swp_article"]
@@ -19,7 +36,8 @@ pub struct Article {
     pub comments_count: i32,
     pub extra: Option<String>,
     pub metadata: Option<String>,
-    //pub feature_media: i32,
+    pub feature_media: Option<i32>,
+    pub seo_metadata_id: Option<i32>,
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
@@ -84,6 +102,7 @@ pub struct Author {
     pub twitter: Option<String>,
     pub facebook: Option<String>,
     pub instagram: Option<String>,
+    pub author_media_id: Option<i32>
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
@@ -92,6 +111,15 @@ pub struct Author {
 pub struct ArticleAuthor {
     pub article_id: i32,
     pub author_id: i32,
+}
+
+#[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
+#[table_name = "swp_author_media"]
+pub struct AuthorAvatar {
+    pub id: i32,
+    //pub author_id: i32,
+    pub image_id: i32,
+    pub key: String
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
@@ -110,7 +138,53 @@ pub struct ArticleKeyword {
     pub keyword_id: i32,
 }
 
-impl_load_from_for_diesel! {
+#[derive(Identifiable, Queryable, Debug, PartialEq, Clone)]
+#[table_name = "swp_article_seo_metadata"]
+pub struct ArticleSeoMetadata {
+    pub id: i32,
+    pub meta_title: Option<String>,
+    pub meta_description: Option<String>,
+    pub og_title: Option<String>,
+    pub og_description: Option<String>,
+    pub twitter_title: Option<String>,
+    pub twitter_description: Option<String>,
+    pub seo_meta_media_id: Option<i32>,
+    pub seo_og_media_id: Option<i32>,
+    pub seo_twitter_media_id: Option<i32>,
+}
+
+#[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
+#[table_name = "swp_article_seo_media"]
+pub struct ArticleSeoMedia {
+    pub id: i32,
+    pub image_id: i32,
+    pub key: String
+}
+
+#[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
+#[table_name = "swp_article_related"]
+pub struct RelatedArticle {
+    pub id: i32,
+    pub article_id: i32,
+    pub relates_to_id: i32,
+}
+
+#[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
+#[table_name = "swp_article_source"]
+pub struct Source {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
+#[table_name = "swp_article_sources"]
+#[primary_key(article_id)]
+pub struct ArticleSource {
+    pub article_id: i32,
+    pub source_id: i32,
+}
+
+impl_load_from_for_diesel_pg! {
     (
         error = diesel::result::Error,
         connection = PgConnection,
@@ -122,15 +196,19 @@ impl_load_from_for_diesel! {
         i32 -> (swp_image_rendition, ImageRendition),
         i32 -> (swp_author, Author),
         i32 -> (swp_keyword, Keyword),
+        i32 -> (swp_author_media, AuthorAvatar),
+        i32 -> (swp_article_seo_metadata, ArticleSeoMetadata),
+        i32 -> (swp_article_seo_media, ArticleSeoMedia),
+        i32 -> (swp_article_related, RelatedArticle),
 
         Article.id -> (swp_article_media.article_id, ArticleMedia),
         ArticleMedia.article_id -> (swp_article.id, Article),
-        Image.id -> (swp_image_rendition.image_id, ImageRendition),
+
+        // Image.id -> (swp_article_seo_media.image_id, Image),
+
+        //Image.id -> (swp_image_rendition.image_id, ImageRendition),
         ArticleMedia.id-> (swp_image_rendition.media_id, ImageRendition),
         ImageRendition.media_id -> (swp_article_media.id, ArticleMedia),
-
-        //Article.feature_media -> (swp_article_media.id, ArticleMedia),
-        //ArticleMedia.id -> (swp_article.feature_media, Article),
 
         Statistics.article_id -> (swp_article.id, Article),
 
@@ -147,5 +225,12 @@ impl_load_from_for_diesel! {
 
         ArticleKeyword.keyword_id-> (swp_keyword.id, Keyword),
         ArticleKeyword.article_id-> (swp_article.id, Article),
+
+        Article.id -> (swp_article_related.article_id, RelatedArticle),
+
+        Source.id-> (swp_article_sources.source_id, ArticleSource),
+        Article.id-> (swp_article_sources.article_id, ArticleSource),
+        ArticleSource.source_id-> (swp_article_source.id, Source),
+        ArticleSource.article_id-> (swp_article.id, Article),
     }
 }

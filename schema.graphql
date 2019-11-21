@@ -30,6 +30,10 @@ type Article {
   extra: String
   metadata: String
   statistics: Statistics @juniper(ownership: "owned")
+  featureMedia: ArticleMedia @juniper(ownership: "as_ref")
+  seoMetadata: ArticleSeoMetadata
+  relatedArticles: [RelatedArticle!]!
+  sources: [Source!]!
 }
 
 type Route {
@@ -91,12 +95,47 @@ type Author {
   twitter: String
   facebook: String
   instagram: String
+  avatar: AuthorAvatar @juniper(ownership: "as_ref")
+}
+
+type AuthorAvatar {
+  id: Int!
+  key: String!
+  image: Image!
 }
 
 type Keyword {
   id: Int!
   name: String!
   slug: String!
+}
+
+type ArticleSeoMetadata {
+  id: Int!
+  metaTitle: String
+  metaDescription: String
+  ogTitle: String
+  ogDescription: String
+  twitterTitle: String
+  twitterDescription: String
+  seoMetaMedia: ArticleSeoMedia @juniper(ownership: "as_ref")
+  seoOgMedia: ArticleSeoMedia @juniper(ownership: "as_ref")
+  seoTwitterMedia: ArticleSeoMedia @juniper(ownership: "as_ref")
+}
+
+type ArticleSeoMedia {
+  id: Int!
+  key: String!
+  image: Image!
+}
+
+type RelatedArticle {
+  article: Article!
+}
+
+type Source {
+  id: Int!
+  name: String!
 }
 
 type ArticleConnection {
