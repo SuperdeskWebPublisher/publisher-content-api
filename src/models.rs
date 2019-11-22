@@ -17,7 +17,9 @@ use crate::schema::{
     swp_article_seo_media,
     swp_article_related,
     swp_article_source,
-    swp_article_sources
+    swp_article_sources,
+    swp_slideshow,
+    swp_slideshow_item
 };
 use diesel::deserialize::Queryable;
 use diesel::prelude::*;
@@ -83,8 +85,8 @@ pub struct Image {
 #[table_name = "swp_image_rendition"]
 pub struct ImageRendition {
     pub id: i32,
-    pub image_id: i32,
     pub media_id: i32,
+    pub image_id: i32,
     pub width: i32,
     pub height: i32,
     pub name: String
@@ -184,6 +186,23 @@ pub struct ArticleSource {
     pub source_id: i32,
 }
 
+#[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
+#[table_name = "swp_slideshow"]
+pub struct Slideshow {
+    pub id: i32,
+    pub article_id: i32,
+    pub code: String,
+}
+
+#[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
+#[table_name = "swp_slideshow_item"]
+pub struct SlideshowItem {
+    pub id: i32,
+    pub article_media_id: i32,
+    pub slideshow_id: i32,
+    pub position: Option<i32>,
+}
+
 impl_load_from_for_diesel_pg! {
     (
         error = diesel::result::Error,
@@ -200,6 +219,7 @@ impl_load_from_for_diesel_pg! {
         i32 -> (swp_article_seo_metadata, ArticleSeoMetadata),
         i32 -> (swp_article_seo_media, ArticleSeoMedia),
         i32 -> (swp_article_related, RelatedArticle),
+        i32 -> (swp_slideshow, Slideshow),
 
         Article.id -> (swp_article_media.article_id, ArticleMedia),
         ArticleMedia.article_id -> (swp_article.id, Article),
@@ -208,7 +228,7 @@ impl_load_from_for_diesel_pg! {
 
         //Image.id -> (swp_image_rendition.image_id, ImageRendition),
         ArticleMedia.id-> (swp_image_rendition.media_id, ImageRendition),
-        ImageRendition.media_id -> (swp_article_media.id, ArticleMedia),
+        // ImageRendition.media_id -> (swp_article_media.id, ArticleMedia),
 
         Statistics.article_id -> (swp_article.id, Article),
 
@@ -232,5 +252,22 @@ impl_load_from_for_diesel_pg! {
         Article.id-> (swp_article_sources.article_id, ArticleSource),
         ArticleSource.source_id-> (swp_article_source.id, Source),
         ArticleSource.article_id-> (swp_article.id, Article),
+
+        Article.id -> (swp_slideshow.article_id, Slideshow),
+
+        Slideshow.id -> (swp_slideshow_item.slideshow_id, SlideshowItem),
+        //SlideshowItem.slideshow_id -> (swp_slideshow.id, Slideshow),
+        //ArticleMedia.id -> (swp_slideshow_item.article_media_id, SlideshowItem),
+        
+        // Slideshow = ArticleMedia
+        // SlideshowItem = ImageRendition
+
+        //ArticleMedia.id -> (swp_image_rendition.media_id, ImageRendition),
+        //ImageRendition.media_id -> (swp_article_media.id, ArticleMedia),
+        //ArticleMedia.id -> (swp_slideshow_item.article_media_id, SlideshowItem),
+
+        // ArticleMedia.id-> (swp_image_rendition.media_id, ImageRendition),
+        // ImageRendition.media_id -> (swp_article_media.id, ArticleMedia),
+        
     }
 }

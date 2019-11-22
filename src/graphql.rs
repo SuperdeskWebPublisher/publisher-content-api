@@ -15,6 +15,8 @@ use super::models::ArticleSeoMedia as ArticleSeoMediaModel;
 use super::models::RelatedArticle as RelatedArticleModel;
 use super::models::ArticleSource as ArticleSourceModel;
 use super::models::Source as SourceModel;
+use super::models::Slideshow as SlideshowModel;
+use super::models::SlideshowItem as SlideshowItemModel;
 use juniper_eager_loading::{prelude::*, *};
 use juniper_from_schema::graphql_schema_from_file;
 use crate::db::{DbConn, DbConnPool};
@@ -26,11 +28,6 @@ use rocket::{
     request::{self, FromRequest, Request},
     Outcome, State,
 };
-// extern crate base64;
-// #[macro_use]
-// extern crate serde_derive;
-// extern crate serde;
-// extern crate serde_json;
 use std::fmt;
 use std::marker::PhantomData;
 use serde::de::{Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
@@ -103,6 +100,11 @@ pub struct Article {
     related_articles: HasMany<RelatedArticle>,
     #[has_many_through(join_model = "ArticleSourceModel")]
     sources: HasManyThrough<Source>,
+    #[has_many(
+        root_model_field = "slideshow",
+        foreign_key_field = "article_id",
+    )]
+    slideshows: HasMany<Slideshow>,
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -132,18 +134,17 @@ pub struct Route {
     connection = "PgConnection"
 )]
 pub struct ArticleMedia {
-    media: ArticleMediaModel,
     article_media: ArticleMediaModel,
     #[has_one(default)]
     article: HasOne<Article>,
     #[has_one(default)]
     image: HasOne<Image>,
+    feature_media: ArticleMediaModel,
     #[has_many(
         root_model_field = "image_rendition",
         foreign_key_field = "media_id",
     )]
     renditions: HasMany<ImageRendition>,
-    feature_media: ArticleMediaModel,
 }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
@@ -163,7 +164,9 @@ pub struct Image {
     connection = "PgConnection"
 )]
 pub struct ImageRendition {
-    #[has_one(default)]
+    #[has_one(
+        root_model_field = "article_media"
+    )]
     media: HasOne<ArticleMedia>,
     image_rendition: ImageRenditionModel,
     #[has_one(default)]
@@ -256,7 +259,6 @@ pub struct RelatedArticle {
     article: HasOne<Article>,
 }
 
-
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
 #[eager_loading(
     model = "SourceModel",
@@ -265,6 +267,40 @@ pub struct RelatedArticle {
 )]
 pub struct Source {
     source: SourceModel
+}
+
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "SlideshowModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct Slideshow {
+    slideshow: SlideshowModel,
+    #[has_one(default)]
+    article: HasOne<Article>,
+    #[has_many(
+        root_model_field = "slideshow_item",
+        foreign_key_field = "slideshow_id",
+    )]
+    items: HasMany<SlideshowItem>,
+}
+
+#[derive(Clone, Debug, PartialEq, EagerLoading)]
+#[eager_loading(
+    model = "SlideshowItemModel",
+    error = "diesel::result::Error",
+    connection = "PgConnection"
+)]
+pub struct SlideshowItem {
+    slideshow_item: SlideshowItemModel,
+    #[has_one(default)]
+    slideshow: HasOne<Slideshow>,
+    #[has_one(
+        foreign_key_field = "article_media_id",
+        root_model_field = "article_media"
+    )]
+    media: HasOne<ArticleMedia>,
 }
 
 impl ArticleFields for Article {
@@ -394,6 +430,14 @@ impl ArticleFields for Article {
         _trail: &QueryTrail<'_, Source, Walked>,
     ) -> FieldResult<&Vec<Source>> {
         Ok(self.sources.try_unwrap()?)
+    }
+
+    fn field_slideshows(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Slideshow, Walked>,
+    ) -> FieldResult<&Vec<Slideshow>> {
+        Ok(self.slideshows.try_unwrap()?)
     }
 }
 
@@ -555,7 +599,6 @@ impl ArticleMediaFields for ArticleMedia {
         _executor: &Executor<'_, Context>,
         _trail: &QueryTrail<'_, ImageRendition, Walked>,
     ) -> FieldResult<&Vec<ImageRendition>> {
-        println!("{:?}", self);
         self.renditions.try_unwrap().map_err(From::from)
     }
 }
@@ -657,6 +700,50 @@ impl RelatedArticleFields for RelatedArticle {
         _trail: &QueryTrail<'_, Article, Walked>,
     ) -> FieldResult<&Article> {
         Ok(self.article.try_unwrap()?)
+    }
+}
+
+impl SlideshowFields for Slideshow {
+    fn field_article(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Article, Walked>,
+    ) -> FieldResult<&Article> {
+        Ok(self.article.try_unwrap()?)
+    }
+
+    fn field_code(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.slideshow.code)
+    }
+
+    fn field_items(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, SlideshowItem, Walked>,
+    ) -> FieldResult<&Vec<SlideshowItem>> {
+        Ok(self.items.try_unwrap()?)
+    }
+}
+
+impl SlideshowItemFields for SlideshowItem {
+    fn field_slideshow(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, Slideshow, Walked>,
+    ) -> FieldResult<&Slideshow> {
+        Ok(self.slideshow.try_unwrap()?)
+    }
+
+    fn field_media(
+        &self,
+        _executor: &Executor<'_, Context>,
+        _trail: &QueryTrail<'_, ArticleMedia, Walked>,
+    ) -> FieldResult<&ArticleMedia> {
+        Ok(self.media.try_unwrap()?)
+    }
+
+    fn field_position(&self, _executor: &Executor<'_, Context>) -> FieldResult<&Option<i32>> {
+        Ok(&self.slideshow_item.position)
     }
 }
 
@@ -823,12 +910,6 @@ where
     
     Ok(nodes)
 }
-
-// impl Clone for Cursor {
-//     fn clone(&self) -> Self {
-//         Cursor(self.0.clone())
-//     }
-// }
 
 pub struct PageInfo {
     start_cursor: Option<Cursor>,
