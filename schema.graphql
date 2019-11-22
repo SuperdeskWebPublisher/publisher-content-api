@@ -34,6 +34,7 @@ type Article {
   seoMetadata: ArticleSeoMetadata
   relatedArticles: [RelatedArticle!]!
   sources: [Source!]!
+  slideshows: [Slideshow!]!
 }
 
 type Route {
@@ -69,8 +70,8 @@ type Image {
 
 type ImageRendition {
   id: Int!
-  media: ArticleMedia!
   image: Image!
+  media: ArticleMedia!
   width: Int!
   height: Int!
   name: String!
@@ -136,6 +137,18 @@ type RelatedArticle {
 type Source {
   id: Int!
   name: String!
+}
+
+type Slideshow {
+  article: Article!
+  code: String!
+  items: [SlideshowItem!]!
+}
+
+type SlideshowItem {
+  media: ArticleMedia!
+  slideshow: Slideshow!
+  position: Int
 }
 
 type ArticleConnection {

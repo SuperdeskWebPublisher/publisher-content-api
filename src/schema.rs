@@ -155,6 +155,23 @@ table! {
     }
 }
 
+table! {
+    swp_slideshow (id) {
+        id -> Int4,
+        article_id -> Int4,
+        code -> Varchar,
+    }
+}
+
+table! {
+    swp_slideshow_item (id) {
+        id -> Int4,
+        article_media_id -> Int4,
+        slideshow_id -> Int4,
+        position -> Nullable<Int4>,
+    }
+}
+
 joinable!(swp_article -> swp_route (route_id));
 joinable!(swp_article_media -> swp_image (image_id));
 joinable!(swp_image_rendition -> swp_image (image_id));
@@ -187,5 +204,7 @@ allow_tables_to_appear_in_same_query!(
     swp_article_seo_media,
     swp_article_related,
     swp_article_source,
-    swp_article_sources
+    swp_article_sources,
+    swp_slideshow,
+    swp_slideshow_item
 );
