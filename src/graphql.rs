@@ -350,9 +350,13 @@ impl ArticleFields for Article {
         }))
     }
 
-    // fn field_published_at(&self, _: &Executor<'_, Context>) -> FieldResult<&Option<DateTime<Utc>>> {
-    //     Ok(&self.article.published_at)
-    // }
+    fn field_published_at(&self, _: &Executor<'_, Context>) -> FieldResult<Option<NaiveDateTime>> {
+        Ok(self.article.published_at)
+    }
+
+    fn field_updated_at(&self, _: &Executor<'_, Context>) -> FieldResult<Option<NaiveDateTime>> {
+        Ok(self.article.updated_at)
+    }
 
     fn field_route(
         &self,

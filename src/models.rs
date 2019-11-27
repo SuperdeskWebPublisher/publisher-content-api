@@ -40,6 +40,8 @@ pub struct Article {
     pub metadata: Option<String>,
     pub feature_media: Option<i32>,
     pub seo_metadata_id: Option<i32>,
+    pub published_at: Option<NaiveDateTime>,
+    pub updated_at: Option<NaiveDateTime>,
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]

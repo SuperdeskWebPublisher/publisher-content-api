@@ -12,6 +12,8 @@ table! {
         metadata -> Nullable<Text>,
         feature_media -> Nullable<Int4>,
         seo_metadata_id -> Nullable<Int4>,
+        published_at -> Nullable<Timestamp>,
+        updated_at -> Nullable<Timestamp>,
     }
 }
 

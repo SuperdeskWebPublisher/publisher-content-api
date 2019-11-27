@@ -35,6 +35,8 @@ type Article {
   relatedArticles: [RelatedArticle!]!
   sources: [Source!]!
   slideshows: [Slideshow!]!
+  publishedAt: DateTimeUtc @juniper(ownership: "owned")
+  updatedAt: DateTimeUtc @juniper(ownership: "owned")
 }
 
 type Route {
@@ -151,6 +153,8 @@ type SlideshowItem {
   slideshow: Slideshow!
   position: Int
 }
+
+scalar DateTimeUtc @juniper(with_time_zone: false)
 
 type ArticleConnection {
   edges: [ArticleEdge!]!
