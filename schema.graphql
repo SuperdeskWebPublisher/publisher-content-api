@@ -40,6 +40,7 @@ type Article {
 type Route {
   id: Int!
   name: String!
+  slug: String!
 }
 
 type Statistics {

@@ -19,6 +19,7 @@ table! {
     swp_route (id) {
         id -> Int4,
         name -> Varchar,
+        slug -> Varchar,
     }
 }
 

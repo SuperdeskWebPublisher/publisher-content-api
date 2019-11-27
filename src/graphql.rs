@@ -543,6 +543,10 @@ impl RouteFields for Route {
     fn field_name(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
         Ok(&self.route.name)
     }
+
+    fn field_slug(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
+        Ok(&self.route.slug)
+    }
 }
 
 impl ArticleMediaFields for ArticleMedia {
