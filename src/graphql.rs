@@ -337,11 +337,6 @@ impl ArticleFields for Article {
         } else {
             Ok(None)
         }
-
-
-        // Ok(Some(Statistics {
-        //     statistics
-        // }))
     }
 
     fn field_published_at(&self, _: &Executor<'_, Context>) -> FieldResult<Option<NaiveDateTime>> {
