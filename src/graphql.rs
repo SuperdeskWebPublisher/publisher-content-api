@@ -181,24 +181,7 @@ pub struct ImageRendition {
 )]
 pub struct Author {
     author: AuthorModel,
-    // #[option_has_one(
-    //     foreign_key_field = "author_media_id",
-    //     root_model_field = "author_avatar",
-    // )]
-    // avatar: OptionHasOne<Box<AuthorAvatar>>,
 }
-
-// #[derive(Clone, Debug, PartialEq, EagerLoading)]
-// #[eager_loading(
-//     model = "AuthorAvatarModel",
-//     error = "diesel::result::Error",
-//     connection = "PgConnection"
-// )]
-// pub struct AuthorAvatar {
-//     author_avatar: AuthorAvatarModel,
-//     #[has_one(default)]
-//     image: HasOne<Image>
-// }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
 #[eager_loading(
