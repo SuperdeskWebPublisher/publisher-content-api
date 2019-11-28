@@ -77,7 +77,7 @@ table! {
 table! {
     swp_author_media (id) {
         id -> Int4,
-        //author_id -> Nullable<Int4>,
+        author_id -> Int4,
         image_id -> Int4,
         key -> Varchar,
     }

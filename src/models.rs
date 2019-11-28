@@ -122,7 +122,7 @@ pub struct ArticleAuthor {
 #[table_name = "swp_author_media"]
 pub struct AuthorAvatar {
     pub id: i32,
-    //pub author_id: i32,
+    pub author_id: i32,
     pub image_id: i32,
     pub key: String
 }

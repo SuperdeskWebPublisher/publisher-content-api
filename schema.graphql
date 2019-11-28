@@ -8,6 +8,7 @@ type Query {
   articles(
     after: Cursor
     first: Int = 20
+    route: Int
   ): ArticleConnection @juniper(ownership: "owned")
 }
 
@@ -99,13 +100,7 @@ type Author {
   twitter: String
   facebook: String
   instagram: String
-  avatar: AuthorAvatar @juniper(ownership: "as_ref")
-}
-
-type AuthorAvatar {
-  id: Int!
-  key: String!
-  image: Image!
+  avatarUrl: String @juniper(ownership: "owned")
 }
 
 type Keyword {

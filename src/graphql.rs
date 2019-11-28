@@ -181,24 +181,24 @@ pub struct ImageRendition {
 )]
 pub struct Author {
     author: AuthorModel,
-    #[option_has_one(
-        foreign_key_field = "author_media_id",
-        root_model_field = "author_avatar",
-    )]
-    avatar: OptionHasOne<Box<AuthorAvatar>>,
+    // #[option_has_one(
+    //     foreign_key_field = "author_media_id",
+    //     root_model_field = "author_avatar",
+    // )]
+    // avatar: OptionHasOne<Box<AuthorAvatar>>,
 }
 
-#[derive(Clone, Debug, PartialEq, EagerLoading)]
-#[eager_loading(
-    model = "AuthorAvatarModel",
-    error = "diesel::result::Error",
-    connection = "PgConnection"
-)]
-pub struct AuthorAvatar {
-    author_avatar: AuthorAvatarModel,
-    #[has_one(default)]
-    image: HasOne<Image>
-}
+// #[derive(Clone, Debug, PartialEq, EagerLoading)]
+// #[eager_loading(
+//     model = "AuthorAvatarModel",
+//     error = "diesel::result::Error",
+//     connection = "PgConnection"
+// )]
+// pub struct AuthorAvatar {
+//     author_avatar: AuthorAvatarModel,
+//     #[has_one(default)]
+//     image: HasOne<Image>
+// }
 
 #[derive(Clone, Debug, PartialEq, EagerLoading)]
 #[eager_loading(
@@ -482,36 +482,32 @@ impl AuthorFields for Author {
         Ok(&self.author.instagram)
     }
 
-    fn field_avatar<'a>(
-        &self,
-        _executor: &Executor<'a, Context>,
-        _trail: &QueryTrail<'a, AuthorAvatar, Walked>,
-    ) -> FieldResult<Option<&AuthorAvatar>> {
-        let avatar = self
-            .avatar
-            .try_unwrap()?
-            .as_ref()
-            .map(|boxed| &**boxed);
+    fn field_avatar_url(&self, _executor: &Executor<'_, Context>) -> FieldResult<Option<String>> {
+        use crate::{graphql::generator::*};
+        use crate::schema::swp_author_media::dsl;
+        use crate::schema::swp_author_media::columns::author_id;
+        use crate::schema::swp_image::dsl as dsl_image;
+        use crate::schema::swp_image::columns::id;
 
-        Ok(avatar)
-    }  
-}
+        let conn = &_executor.context().db_con;
+        let avatar = dsl::swp_author_media
+            .filter(author_id.eq(self.author.id))
+            .first::<AuthorAvatarModel>(conn)
+            .unwrap();
 
-impl AuthorAvatarFields for AuthorAvatar {
-    fn field_id(&self, _executor: &Executor<'_, Context>) -> FieldResult<&i32> {
-        Ok(&self.author_avatar.id)
-    }
+        let image = dsl_image::swp_image
+            .filter(id.eq(avatar.image_id))
+            .first::<ImageModel>(conn)
+            .optional()
+            .unwrap();
+            
+        let mut url = String::new();
 
-    fn field_key(&self, _executor: &Executor<'_, Context>) -> FieldResult<&String> {
-        Ok(&self.author_avatar.key)
-    }
+        if let Some(i) = image {
+            url = generate_avatar_url(&i.asset_id, &i.file_extension);
+        }
 
-    fn field_image(
-        &self,
-        _executor: &Executor<'_, Context>,
-        _trail: &QueryTrail<'_, Image, Walked>,
-    ) -> FieldResult<&Image> {
-        Ok(self.image.try_unwrap()?)
+        Ok(Some(url))
     }
 }
 
@@ -779,9 +775,10 @@ impl QueryFields for Query {
         trail: &QueryTrail<'_, ArticleConnection, Walked>,
         after: Option<Cursor>,
         first: i32,
+        route: Option<i32>,
     ) -> FieldResult<Option<ArticleConnection>> {
         let conn = &executor.context().db_con;
-        let articles_connection = Some(articles_connections(after, first, trail, conn)?);
+        let articles_connection = Some(articles_connections(after, first, route, trail, conn)?);
 
         Ok(articles_connection)
     }
@@ -790,6 +787,7 @@ impl QueryFields for Query {
 fn articles_connections(
     cursor: Option<Cursor>,
     page_size: i32,
+    route_id: Option<i32>,
     trail: &QueryTrail<'_, ArticleConnection, Walked>,
     conn: &PgConnection,
 ) -> QueryResult<ArticleConnection> {
@@ -803,15 +801,28 @@ fn articles_connections(
         .parse::<String>()
         .expect("invalid cursor");
 
+    // let route_id_value = route_id
+    //     .unwrap();
+        
+    // route_id.is_some();
+
+    
+
     let decoded_cursor_value = String::from_utf8(decode(&cursor_value).unwrap()[..].to_vec()).unwrap();
     let page_number = decoded_cursor_value.parse::<i64>().unwrap();
 
     let val = (page_number + 1).to_string();
     let next_page_cursor = Cursor(encode(&val));
 
-    let base_query = swp_article::table
-        .select(swp_article::all_columns)
-        .order(swp_article::id);
+    let mut base_query = swp_article::table
+        .into_boxed()
+        .select(swp_article::all_columns);
+
+    if let Some(id) = route_id {
+        base_query = base_query.filter(swp_article::route_id.eq(id));
+    }
+
+    base_query = base_query.order(swp_article::published_at.desc());
 
     let (article_models, total_count) = base_query
         .paginate(page_number)
