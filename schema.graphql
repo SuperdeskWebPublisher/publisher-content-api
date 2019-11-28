@@ -8,6 +8,7 @@ type Query {
   articles(
     after: Cursor
     first: Int = 20
+    route: Int
   ): ArticleConnection @juniper(ownership: "owned")
 }
 
@@ -35,11 +36,14 @@ type Article {
   relatedArticles: [RelatedArticle!]!
   sources: [Source!]!
   slideshows: [Slideshow!]!
+  publishedAt: DateTimeUtc @juniper(ownership: "owned")
+  updatedAt: DateTimeUtc @juniper(ownership: "owned")
 }
 
 type Route {
   id: Int!
   name: String!
+  slug: String!
 }
 
 type Statistics {
@@ -96,13 +100,7 @@ type Author {
   twitter: String
   facebook: String
   instagram: String
-  avatar: AuthorAvatar @juniper(ownership: "as_ref")
-}
-
-type AuthorAvatar {
-  id: Int!
-  key: String!
-  image: Image!
+  avatarUrl: String @juniper(ownership: "owned")
 }
 
 type Keyword {
@@ -150,6 +148,8 @@ type SlideshowItem {
   slideshow: Slideshow!
   position: Int
 }
+
+scalar DateTimeUtc @juniper(with_time_zone: false)
 
 type ArticleConnection {
   edges: [ArticleEdge!]!

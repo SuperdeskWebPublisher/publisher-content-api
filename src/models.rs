@@ -40,6 +40,8 @@ pub struct Article {
     pub metadata: Option<String>,
     pub feature_media: Option<i32>,
     pub seo_metadata_id: Option<i32>,
+    pub published_at: Option<NaiveDateTime>,
+    pub updated_at: Option<NaiveDateTime>,
 }
 
 #[derive(Identifiable, Queryable, Debug, Clone, PartialEq)]
@@ -47,6 +49,7 @@ pub struct Article {
 pub struct Route {
     pub id: i32,
     pub name: String,
+    pub slug: String,
     // pub r#type: String,
 }
 
@@ -119,7 +122,7 @@ pub struct ArticleAuthor {
 #[table_name = "swp_author_media"]
 pub struct AuthorAvatar {
     pub id: i32,
-    //pub author_id: i32,
+    pub author_id: i32,
     pub image_id: i32,
     pub key: String
 }

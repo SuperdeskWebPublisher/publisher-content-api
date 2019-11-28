@@ -12,6 +12,8 @@ table! {
         metadata -> Nullable<Text>,
         feature_media -> Nullable<Int4>,
         seo_metadata_id -> Nullable<Int4>,
+        published_at -> Nullable<Timestamp>,
+        updated_at -> Nullable<Timestamp>,
     }
 }
 
@@ -19,6 +21,7 @@ table! {
     swp_route (id) {
         id -> Int4,
         name -> Varchar,
+        slug -> Varchar,
     }
 }
 
@@ -74,7 +77,7 @@ table! {
 table! {
     swp_author_media (id) {
         id -> Int4,
-        //author_id -> Nullable<Int4>,
+        author_id -> Int4,
         image_id -> Int4,
         key -> Varchar,
     }
