@@ -326,11 +326,22 @@ impl ArticleFields for Article {
         let conn = &_executor.context().db_con;
         let statistics = dsl::swp_article_statistics
             .filter(article_id.eq(self.article.id))
-            .first::<StatisticsModel>(conn)?;
+            .first::<StatisticsModel>(conn)
+            .optional()
+            .unwrap();
 
-        Ok(Some(Statistics {
-            statistics
-        }))
+        if let Some(stats) = statistics {
+            Ok(Some(Statistics {
+                statistics: stats
+            }))
+        } else {
+            Ok(None)
+        }
+
+
+        // Ok(Some(Statistics {
+        //     statistics
+        // }))
     }
 
     fn field_published_at(&self, _: &Executor<'_, Context>) -> FieldResult<Option<NaiveDateTime>> {
@@ -783,13 +794,6 @@ fn articles_connections(
         .0
         .parse::<String>()
         .expect("invalid cursor");
-
-    // let route_id_value = route_id
-    //     .unwrap();
-        
-    // route_id.is_some();
-
-    
 
     let decoded_cursor_value = String::from_utf8(decode(&cursor_value).unwrap()[..].to_vec()).unwrap();
     let page_number = decoded_cursor_value.parse::<i64>().unwrap();
