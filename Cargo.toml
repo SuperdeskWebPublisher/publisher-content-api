@@ -5,7 +5,7 @@ authors = ["Rafał Muszyński <rafal.muszynski@sourcefabric.org>"]
 edition = "2018"
 
 [dependencies]
-rocket = "0.4.2"
+rocket = "0.4.7"
 juniper = "0.14"
 juniper_rocket = "0.5"
 dotenv = "0.9.0"
