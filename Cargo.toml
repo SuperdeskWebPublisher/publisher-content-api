@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 rocket = "0.4.2"
-juniper = "0.14"
+juniper = "0.15"
 juniper_rocket = "0.5"
 dotenv = "0.9.0"
 chrono = "0.4.7"
